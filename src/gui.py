@@ -50,11 +50,10 @@ class Window(CTk):
 
     def loadPieces(self):
         piezas = [
-            'rey-blanco','dama-blanca','alfil-blanco','caballo-blanco','torre-blanca','peon-blanco',
-            'rey-negro','dama-negra','alfil-negro','caballo-negro','torre-negra','peon-negro']
+            'bR','bD','bA','bC','bT','bP',
+            'nR','nD','nA','nC','nT','nP']
         for pieza in piezas:
             self.imagenes[pieza] = PhotoImage(file='./img/' + pieza + '.png')
-        #self.interfaz.create_image(40,40,image=self.imagenes['torre-blanca'],anchor='nw')
 
     def showPieces(self):
         tam_lado=80
