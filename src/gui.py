@@ -20,21 +20,21 @@ class Window(CTk):
         self.title('Mad Chess - Artificial Intelligence')
         self.resizable(0,0)
         
-        self.posXChessboard = 50
-        self.posYChessboard = 70
+        self.posXTablero = 50
+        self.posYTablero = 70
         self.imagenes = {}
         
         self.interfaz = Canvas(self)
-        self.interfaz.place(x=self.posXChessboard,y=self.posYChessboard,
-                            width=640,height=640)
-        self.drawChessboard()
-        self.loadPieces()
-        self.showPieces()
-        self.numberLabels()
+        self.interfaz.place(
+            x=self.posXTablero, y=self.posYTablero, width=640, height=640)
+        self.dibujarTablero()
+        self.cargarPiezas()
+        self.mostrarPiezas()
+        self.etiquetas()
         self.buttons()
 
-    # Everything of the images
-    def drawChessboard(self):
+    # Todo lo que hay que dibujar en pantalla
+    def dibujarTablero(self):
         #self.interfaz.create_rectangle(x0,y0,x1,y1,fill='')
         tam_lado=80
         for i in range(8):
@@ -48,14 +48,14 @@ class Window(CTk):
                         i*tam_lado,j*tam_lado,
                         (i+1)*tam_lado,(j+1)*tam_lado,fill='#18141d')
 
-    def loadPieces(self):
+    def cargarPiezas(self):
         piezas = [
             'bR','bD','bA','bC','bT','bP',
             'nR','nD','nA','nC','nT','nP']
         for pieza in piezas:
             self.imagenes[pieza] = PhotoImage(file='./img/' + pieza + '.png')
 
-    def showPieces(self):
+    def mostrarPiezas(self):
         tam_lado=80
         for index_i, i in enumerate(self.gs.piezas):
             for index_j, j in enumerate(i):
@@ -64,36 +64,34 @@ class Window(CTk):
                         index_j*tam_lado, index_i*tam_lado+1, image=self.imagenes[j], anchor='nw')
     # ------------------------
 
-    def numberLabels(self):
+    def etiquetas(self):
         for i in range(8):
             CTkLabel(
                 master=self, text=f'{8-i}', fg_color="transparent",
-                width=40, height=30, font=('Comic Sans MS', 25)).place(x=5,y=80*i+95)
-        letters=['A','B','C','D','E','F','G','H']
-        c=0
-        for j in letters:
+                width=40, height=30, font=('Comic Sans MS', 25)).place(x=5, y=80*i+95)
+        letras=['A','B','C','D','E','F','G','H']
+        for j in range(8):
             CTkLabel(
-                master=self, text=f'{letters[c]}', fg_color="transparent",
-                width=40, height=30, font=('Comic Sans MS', 25)).place(x=70+80*c,y=715)
-            c+=1
+                master=self, text=f'{letras[j]}', fg_color="transparent",
+                width=40, height=30, font=('Comic Sans MS', 25)).place(x=70+80*j, y=715)
 
     def buttons(self):
-        # initialization
+        # incialización
         btn_newGame = CTkButton(
             master=self, text="Start new game", #command=funcion_button_BFS,
-            width=160, height=40, #border_width=0, state='disabled', text_color_disabled='white', corner_radius=8, 
+            width=160, height=40, border_width=0, corner_radius=8, #state='disabled', text_color_disabled='white', 
             font=('Comic Sans MS', 20))
         btn_return = CTkButton(
             master=self, text="Return play", #command=funcion_button_BFS,
-            width=160, height=40, #border_width=0, state='disabled', text_color_disabled='white', corner_radius=8, 
+            width=160, height=40, border_width=0, corner_radius=8, #state='disabled', text_color_disabled='white', 
             font=('Comic Sans MS', 20))
         
         btn_Resign = CTkButton( # ni idea pa que lo creé
             master=self, text="Start new game", #command=funcion_button_BFS,
-            width=160, height=40, #border_width=0, state='disabled', text_color_disabled='white', corner_radius=8, 
+            width=160, height=40, border_width=0, corner_radius=8, #state='disabled', text_color_disabled='white', 
             font=('Comic Sans MS', 18))
         
-        # instantiate
+        # instanciados
         btn_newGame.place(x=50, y=10)
         btn_return.place(x=290, y=10)
 
