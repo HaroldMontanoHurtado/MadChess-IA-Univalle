@@ -76,24 +76,21 @@ class Window(CTk):
                 width=40, height=30, font=('Comic Sans MS', 25)).place(x=70+80*j, y=715)
 
     def buttons(self):
-        # incialización
-        btn_newGame = CTkButton(
+        # incialización e instanciados
+        CTkButton(
             master=self, text="Start new game", #command=funcion_button_BFS,
             width=160, height=40, border_width=0, corner_radius=8, #state='disabled', text_color_disabled='white', 
-            font=('Comic Sans MS', 20))
-        btn_return = CTkButton(
+            font=('Comic Sans MS', 20)).place(x=50, y=10)
+        CTkButton(
             master=self, text="Return play", #command=funcion_button_BFS,
             width=160, height=40, border_width=0, corner_radius=8, #state='disabled', text_color_disabled='white', 
-            font=('Comic Sans MS', 20))
-        
-        btn_Resign = CTkButton( # ni idea pa que lo creé
+            font=('Comic Sans MS', 20)).place(x=290, y=10)
+        # no se le ha dado funcion alguna
+        CTkButton( # ni idea pa que lo creé
             master=self, text="Start new game", #command=funcion_button_BFS,
             width=160, height=40, border_width=0, corner_radius=8, #state='disabled', text_color_disabled='white', 
             font=('Comic Sans MS', 18))
-        
-        # instanciados
-        btn_newGame.place(x=50, y=10)
-        btn_return.place(x=290, y=10)
+
 
 if __name__=="__main__":
     window = Window()
