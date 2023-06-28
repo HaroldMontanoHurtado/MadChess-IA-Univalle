@@ -1,4 +1,4 @@
-from chessEngine import GameState
+from ChessEngine import GameState
 from customtkinter import CTk, CTkLabel, CTkButton
 from tkinter import Canvas, PhotoImage
 
