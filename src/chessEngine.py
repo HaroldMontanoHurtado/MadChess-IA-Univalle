@@ -18,13 +18,25 @@ class GameState():
             ['bP','bP','bP','bP','bP','bP','bP','bP'],
             ['bT','bC','bA','bD','bR','bA','bC','bT']]
         self.whiteToMove = True
-        self.registroMov = []
-        
+        self.logMovimientos = []
+    
+    """
+    toma un movimiento como parámetro y lo ejecuta (esto no funcionará para enroque, promoción de peón y captura al paso)
+    """
     def mover(self, movimiento): #makeMove
         self.tablero[movimiento.startRow][movimiento.startCol] = '--'
-        self.tablero[movimiento.endRow][movimiento.endCol] = movimiento.pieceMoved
-        self.registroMov.append(movimiento) #registrar el movimiento para que lo deshagamos más tarde
-        self.whiteToMove = not self.whiteToMove #swap players
+        self.tablero[movimiento.endRow][movimiento.endCol] = movimiento.piezaMovida
+        self.logMovimientos.append(movimiento) # registrar el movimiento para que lo deshagamos más tarde
+        self.whiteToMove = not self.whiteToMove # swap players
+    """
+    #deshacer el ultimo movimiento hecho
+    """
+    def deshacerMov(self):
+        if len(self.logMovimientos) != 0:
+            mov = self.logMovimientos.pop() # Cerciorarse de que haya un movimiento para deshacer
+            self.tablero[mov.startRow][mov.startCol] = mov.piezaMovida
+            self.tablero[mov.endRow][mov.endCol] = mov.piezaCapturada
+            self.whiteToMove = not self.whiteToMove # el switch retrocede
 
 class Movimiento():
     # map keys values
@@ -44,8 +56,8 @@ class Movimiento():
         self.startCol = startSq[1] # clic de columna inicial
         self.endRow = endSq[0] # clic de fila final
         self.endCol = endSq[1] # clic de columna final
-        self.pieceMoved = board[self.startRow][self.startCol]
-        self.pieceCaptured = board[self.endRow][self.endCol]
+        self.piezaMovida = board[self.startRow][self.startCol]
+        self.piezaCapturada = board[self.endRow][self.endCol]
     
     def getChessNotation(self):
         # puedes agregar para hacer esto como una notación de ajedrez real

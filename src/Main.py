@@ -55,7 +55,10 @@ def main():
                     gs.mover(movimiento)
                     sqSelected = () # restablecer clics de usuario
                     clicsDelJugador = []
-                
+            elif e.type == pygame.KEYDOWN:
+                if e.key == pygame.K_z: # se deshace el mov al presionar 'z'
+                    gs.deshacerMov()
+
         dibujarEstadoJuego(pantalla, gs)
         reloj.tick(MAX_FPS)
         pygame.display.flip()
