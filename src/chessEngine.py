@@ -7,7 +7,7 @@ class GameState():
     def __init__(self):
         # tablero de 8x8.
         # La primera letra representa si la pieza es negra o blanca, 'n' o 'b', respectivamente.
-        #'--' representa espacios blancos, vacios.
+        # '--' representa espacios blancos, vacios.
         self.tablero = [
             ['nT','nC','nA','nD','nR','nA','nC','nT'],
             ['nP','nP','nP','nP','nP','nP','nP','nP'],
@@ -40,16 +40,16 @@ class Movimiento():
     colsToFiles = {v:k for k,v in filesToCols.items()}
     
     def __init__(self,startSq,endSq,board): # Sq: square
-        self.startRow = startSq[0]
-        self.startCol = startSq[1]
-        self.endRow = endSq[0]
-        self.endCol = endSq[1]
+        self.startRow = startSq[0] # clic de fila  inicial
+        self.startCol = startSq[1] # clic de columna inicial
+        self.endRow = endSq[0] # clic de fila final
+        self.endCol = endSq[1] # clic de columna final
         self.pieceMoved = board[self.startRow][self.startCol]
         self.pieceCaptured = board[self.endRow][self.endCol]
     
     def getChessNotation(self):
         # puedes agregar para hacer esto como una notación de ajedrez real
-        return self.getRankFile(self.startRow,self.startCol) + self.getRankFile(self.endRow,self.endCol)
+        return self.getRankFile(self.startRow,self.startCol) + ' ' + self.getRankFile(self.endRow,self.endCol)
     
     def getRankFile(self,c,r):
         return self.colsToFiles[c] + self.rowToRanks[r]

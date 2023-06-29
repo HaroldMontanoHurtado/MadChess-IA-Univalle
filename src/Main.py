@@ -5,9 +5,9 @@ displaying the current GameState object.
 import pygame
 import ChessEngine 
 
-ANCHO = ALTO = 600
+ANCHO = ALTO = 800
 DIMENSION = 8 # dimensiones del tablero
-SQ_TAM = ALTO // DIMENSION # SQ: square
+SQ_TAM = ALTO // DIMENSION # SQ: square, SQ_TAM=75
 MAX_FPS = 15 # for animation later on
 IMAGES = {}
 
