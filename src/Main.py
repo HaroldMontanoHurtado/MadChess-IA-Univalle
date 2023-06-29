@@ -35,7 +35,7 @@ def main():
     
     cargarImg() # solo haz esto una vez, antes del ciclo while
     running = True
-    sqSelected = () # no se selecciona ningún cuadrado, 
+    sqSeleccionado = () # no se selecciona ningún cuadrado, 
     # realice un seguimiento del último clic del usuario (tupla: (fila, columna))
     clicsDelJugador = [] # realizar un seguimiento de los clics de los jugadores (dos tuplas: [(6,4),(4,4)])
     while running:
@@ -48,21 +48,22 @@ def main():
                 col = ubicacionMouse[0] // SQ_TAM
                 fil = ubicacionMouse[1] // SQ_TAM
                 #if gs.tablero[fil][col] != '--':
-                if sqSelected == (fil,col): # El usuario hizo clic en el mismo cuadrado dos veces.
-                    sqSelected = () # deseleccionar
+                if sqSeleccionado == (fil,col): # El usuario hizo clic en el mismo cuadrado dos veces.
+                    sqSeleccionado = () # deseleccionar
                     clicsDelJugador = [] # borrar clics del jugador
                 else:
-                        sqSelected = (fil,col)
-                        clicsDelJugador.append(sqSelected) # agregar tanto para el primer como para el segundo clic
+                        sqSeleccionado = (fil,col)
+                        clicsDelJugador.append(sqSeleccionado) # agregar tanto para el primer como para el segundo clic
                 if len(clicsDelJugador) == 2: # después del segundo clic
                     movimiento = ChessEngine.Movimiento(clicsDelJugador[0], clicsDelJugador[1], gs.tablero)
                     print(movimiento.getChessNotation())
                     if movimiento in movValidos: # verificar si el mov existe entre los validos
                         gs.mover(movimiento)
                         movHecho = True
-                    #gs.mover(movimiento)
-                    sqSelected = () # restablecer clics de usuario
-                    clicsDelJugador = []
+                        sqSeleccionado = () # restablecer clics de usuario
+                        clicsDelJugador = []
+                    else:
+                        clicsDelJugador = [sqSeleccionado]
             # Eventos de TECLADO : key handler
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_z: # se deshace el mov al presionar 'z'

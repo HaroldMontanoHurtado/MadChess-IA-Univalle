@@ -19,8 +19,7 @@ class GameState():
             ['bT','bC','bA','bD','bR','bA','bC','bT']]
         self.funcionesMov = {
             'P':self.getMovPeon, 'T':self.getMovTorre, 'C':self.getMovCab,
-            'A':self.getMovAlfil, 'D':self.getMovDama, 'R':self.getMovRey
-        }
+            'A':self.getMovAlfil, 'D':self.getMovDama, 'R':self.getMovRey}
         self.muevenBlancas = True
         # solo blancas, porque para negras seria negar este permiso (not muevenBlancas)
         self.logMovimientos = []
@@ -113,16 +112,52 @@ class GameState():
                     break
     
     def getMovCab(self, fil, col, mov):
-        pass
+        movCaballo = ((-2,-1),(-2,1),(-1,2),(1,2),(2,1),(2,-1),(1,-2),(-1,-2))
+        colorAliado = 'b' if self.muevenBlancas else 'n'
+        for m in movCaballo:
+            filFinal = fil + m[0]
+            colFinal = col + m[1]
+            if 0 <= filFinal < 8 and 0 <= colFinal < 8:
+                piezaFinal = self.tablero[filFinal][colFinal]
+                # verifica que no haya aliados (ocupada solo espacios vacios o enemigos)
+                if piezaFinal[0] != colorAliado:
+                    mov.append(Movimiento((fil,col),(filFinal,colFinal),self.tablero))
     
     def getMovAlfil(self, fil, col, mov):
-        pass
+        direcciones = ((-1,-1),(-1,1),(1,-1),(1,1)) #4 diagonales
+        colorEnemigo = 'n' if self.muevenBlancas else 'b' # enemigos: negros, en otro caso: blancos
+        for d in direcciones:
+            for i in range(1,8): # el alfil solo puede moverse un max de 7 casillas
+                filFinal = fil + d[0]*i
+                colFinal = col + d[1]*i
+                if 0 <= filFinal < 8 and  0 <= colFinal < 8: # en tablero
+                    piezaFinal = self.tablero[filFinal][colFinal]
+                    if piezaFinal == '--': # espacio vacio valido
+                        mov.append(Movimiento((fil,col),(filFinal,colFinal),self.tablero))
+                    elif piezaFinal[0] == colorEnemigo:
+                        mov.append(Movimiento((fil,col),(filFinal,colFinal),self.tablero))
+                        break
+                    else: # pieza invalidada amigablemente
+                        break
+                else: # fuera del tablero
+                    break
     
     def getMovDama(self, fil, col, mov):
-        pass
+        # combinamos los movimientos de las torres y alfiles
+        self.getMovTorre(fil,col,mov)
+        self.getMovAlfil(fil,col,mov)
     
     def getMovRey(self, fil, col, mov):
-        pass
+        movRey = ((-1,-1),(-1,1),(-1,0),(0,1),(1,0),(0,-1),(1,-1),(1,1))
+        colorAliado = 'b' if self.muevenBlancas else 'n'
+        for i in range(8):
+            filFinal = fil + movRey[i][0]
+            colFinal = col + movRey[i][1]
+            if 0 <= filFinal < 8 and 0 <= colFinal < 8:
+                piezaFinal = self.tablero[filFinal][colFinal]
+                # verifica que no haya aliados (ocupada solo espacios vacios o enemigos)
+                if piezaFinal[0] != colorAliado:
+                    mov.append(Movimiento((fil,col),(filFinal,colFinal),self.tablero))
 
 class Movimiento():
     # map keys values
