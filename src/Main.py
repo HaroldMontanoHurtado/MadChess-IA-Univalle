@@ -58,10 +58,9 @@ def main():
                     movimiento = ChessEngine.Movimiento(clicsDelJugador[0], clicsDelJugador[1], gs.tablero)
                     print(movimiento.getChessNotation())
                     if movimiento in movValidos: # verificar si el mov existe entre los validos
-                        print('valido')
                         gs.mover(movimiento)
                         movHecho = True
-                    gs.mover(movimiento)
+                    #gs.mover(movimiento)
                     sqSelected = () # restablecer clics de usuario
                     clicsDelJugador = []
             # Eventos de TECLADO : key handler
