@@ -17,26 +17,80 @@ class GameState():
             ['--','--','--','--','--','--','--','--'],
             ['bP','bP','bP','bP','bP','bP','bP','bP'],
             ['bT','bC','bA','bD','bR','bA','bC','bT']]
-        self.whiteToMove = True
+        self.muevenBlancas = True
+        # solo blancas, porque para negras seria negar este permiso (not muevenBlancas)
         self.logMovimientos = []
-    
     """
-    toma un movimiento como parámetro y lo ejecuta (esto no funcionará para enroque, promoción de peón y captura al paso)
+    toma un movimiento como parámetro y lo ejecuta
+    (esto no funcionará para enroque, promoción de peón y captura al paso)
     """
     def mover(self, movimiento): #makeMove
         self.tablero[movimiento.startRow][movimiento.startCol] = '--'
         self.tablero[movimiento.endRow][movimiento.endCol] = movimiento.piezaMovida
         self.logMovimientos.append(movimiento) # registrar el movimiento para que lo deshagamos más tarde
-        self.whiteToMove = not self.whiteToMove # swap players
+        self.muevenBlancas = not self.muevenBlancas # swap players
     """
-    #deshacer el ultimo movimiento hecho
+    deshacer el ultimo movimiento hecho
     """
     def deshacerMov(self):
         if len(self.logMovimientos) != 0:
             mov = self.logMovimientos.pop() # Cerciorarse de que haya un movimiento para deshacer
             self.tablero[mov.startRow][mov.startCol] = mov.piezaMovida
             self.tablero[mov.endRow][mov.endCol] = mov.piezaCapturada
-            self.whiteToMove = not self.whiteToMove # el switch retrocede
+            self.muevenBlancas = not self.muevenBlancas # el switch retrocede
+    """
+    All moves considering checks
+    """
+    def getMovValidos(self):
+        return self.getTodoPosiblesMov() # por ahora no vamos a preocuparnos por los checks
+    """
+    All moves without considering checks
+    """
+    def getTodoPosiblesMov(self):
+        movimientos = []
+        for fil in range(len(self.tablero)): # numero de filas
+            for col in range(len(self.tablero[fil])): # numero de cols
+                turno = self.tablero[fil][col][0]
+                if (turno == 'b' and self.muevenBlancas) or (turno == 'n' and not self.muevenBlancas):
+                    pieza = self.tablero[fil][col][1]
+                    if pieza == 'P':
+                        self.getMovPeon(fil, col, movimientos)
+                    if pieza == 'T':
+                        self.getMovTorre(fil, col, movimientos)
+        return movimientos
+    """
+    obtenga todos los movimientos de peón para el peón ubicado en fila, columna y agregue estos movimientos a la lista
+    """
+    def getMovPeon(self, fil, col, mov):
+        # Mueven peones blancos
+        if self.muevenBlancas:
+            if self.tablero[fil-1][col] == '--': #1 peón avanza una casilla
+                mov.append(Movimiento((fil,col), (fil-1, col), self.tablero))
+                if fil == 6 and self.tablero[fil-2][col] == '--': #2 peón avanza dos casillas
+                # si el peon esta al inicio (fil==6), entonces puede avanzar 2 casillas
+                    mov.append(Movimiento((fil,col), (fil-2,col), self.tablero))
+            if col-1 >= 0: # capturado a la diagonal izquierda
+                if self.tablero[fil][col][0] == 'b': # pieza enemiga capturada
+                    mov.append(Movimiento((fil,col),(fil-1,col-1),self.tablero))
+            if col+1 <= 7: # capturado a la diagonal derecha
+                if self.tablero[fil-1][col+1][0] == 'b': # pieza enemiga capturada
+                    mov.append(Movimiento((fil,col),(fil-1,col+1),self.tablero))
+        # Mueven peones negros
+        else:
+            pass
+    """
+    obtenga todos los movimientos de torre para el torre ubicado en fila, columna y agregue estos movimientos a la lista
+    """
+    def getMovTorre(self, fil, col, mov):
+        pass
+    def getMovCab(self, fil, col, mov):
+        pass
+    def getMovAlfil(self, fil, col, mov):
+        pass
+    def getMovDama(self, fil, col, mov):
+        pass
+    def getMoRey(self, fil, col, mov):
+        pass
 
 class Movimiento():
     # map keys values

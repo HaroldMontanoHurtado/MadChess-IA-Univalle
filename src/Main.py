@@ -3,7 +3,7 @@ This is our main driver file. It will be responsible for handling user input and
 displaying the current GameState object.
 """
 import pygame
-import ChessEngine 
+import ChessEngine
 
 ANCHO = ALTO = 800
 DIMENSION = 8 # dimensiones del tablero
@@ -30,6 +30,9 @@ def main():
     reloj = pygame.time.Clock()
     pantalla.fill(pygame.Color('white'))
     gs = ChessEngine.GameState()
+    movValidos = gs.getMovValidos()
+    movHecho = False # variable indicadora para cuando se realiza un movimiento
+    
     cargarImg() # solo haz esto una vez, antes del ciclo while
     running = True
     sqSelected = () # no se selecciona ningún cuadrado, 
@@ -39,26 +42,38 @@ def main():
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 running = False
+            # Eventos de MOUSE : mouse handler
             elif e.type == pygame.MOUSEBUTTONDOWN:
                 ubicacionMouse = pygame.mouse.get_pos() #(x,y) ubicacion del mouse
                 col = ubicacionMouse[0] // SQ_TAM
-                row = ubicacionMouse[1] // SQ_TAM
-                if sqSelected == (row,col): # El usuario hizo clic en el mismo cuadrado dos veces.
+                fil = ubicacionMouse[1] // SQ_TAM
+                #if gs.tablero[fil][col] != '--':
+                if sqSelected == (fil,col): # El usuario hizo clic en el mismo cuadrado dos veces.
                     sqSelected = () # deseleccionar
                     clicsDelJugador = [] # borrar clics del jugador
                 else:
-                    sqSelected = (row,col)
-                    clicsDelJugador.append(sqSelected) # agregar tanto para el primer como para el segundo clic
+                        sqSelected = (fil,col)
+                        clicsDelJugador.append(sqSelected) # agregar tanto para el primer como para el segundo clic
                 if len(clicsDelJugador) == 2: # después del segundo clic
                     movimiento = ChessEngine.Movimiento(clicsDelJugador[0], clicsDelJugador[1], gs.tablero)
                     print(movimiento.getChessNotation())
+                    if movimiento in movValidos: # verificar si el mov existe entre los validos
+                        print('valido')
+                        gs.mover(movimiento)
+                        movHecho = True
                     gs.mover(movimiento)
                     sqSelected = () # restablecer clics de usuario
                     clicsDelJugador = []
+            # Eventos de TECLADO : key handler
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_z: # se deshace el mov al presionar 'z'
                     gs.deshacerMov()
-
+                    movHecho = True
+                    
+        if movHecho:
+            movValidos = gs.getMovValidos()
+            movHecho = False
+            
         dibujarEstadoJuego(pantalla, gs)
         reloj.tick(MAX_FPS)
         pygame.display.flip()
