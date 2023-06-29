@@ -14,7 +14,7 @@ class GameState():
             ['--','--','--','--','--','--','--','--'],
             ['--','--','--','--','--','--','--','--'],
             ['--','--','--','--','--','--','--','--'],
-            ['--','--','--','nC','--','--','--','--'],
+            ['--','nT','--','--','--','--','--','--'],
             ['bP','bP','bP','bP','bP','bP','bP','bP'],
             ['bT','bC','bA','bD','bR','bA','bC','bT']]
         self.funcionesMov = {
@@ -90,14 +90,37 @@ class GameState():
             if col+1 <= 7: # capturado a la diagonal derecha
                 if self.tablero[fil+1][col+1][0] == 'b': # pieza enemiga capturada
                     mov.append(Movimiento((fil,col),(fil+1,col+1),self.tablero))
+        # Agregar la promoción de peón más adelante
+    
     def getMovTorre(self, fil, col, mov):
-        pass
+        # visto desde el punto de las blancas
+        direcciones = ((-1,0),(0,-1),(1,0),(0,1)) # up, left, down, right
+        colorEnemigo = 'n' if self.muevenBlancas else 'b' # enemigos: negros, en otro caso: blancos
+        for d in direcciones:
+            for i in range(1,8):
+                filFinal = fil + d[0]*i
+                colFinal = col + d[1]*i
+                if 0 <= filFinal < 8 and  0 <= colFinal < 8: # en tablero
+                    piezaFinal = self.tablero[filFinal][colFinal]
+                    if piezaFinal == '--': # espacio vacio valido
+                        mov.append(Movimiento((fil,col),(filFinal,colFinal),self.tablero))
+                    elif piezaFinal[0] == colorEnemigo:
+                        mov.append(Movimiento((fil,col),(filFinal,colFinal),self.tablero))
+                        break
+                    else: # pieza invalidada amigablemente
+                        break
+                else: # fuera del tablero
+                    break
+    
     def getMovCab(self, fil, col, mov):
         pass
+    
     def getMovAlfil(self, fil, col, mov):
         pass
+    
     def getMovDama(self, fil, col, mov):
         pass
+    
     def getMovRey(self, fil, col, mov):
         pass
 
