@@ -69,7 +69,7 @@ def main():
                 if e.key == pygame.K_z: # se deshace el mov al presionar 'z'
                     gs.deshacerMov()
                     movHecho = True
-                    
+            
         if movHecho:
             movValidos = gs.getMovValidos()
             movHecho = False

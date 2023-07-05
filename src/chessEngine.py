@@ -23,6 +23,10 @@ class GameState():
         self.muevenBlancas = True
         # solo blancas, porque para negras seria negar este permiso (not muevenBlancas)
         self.logMovimientos = []
+        self.reyBlancoUbicacion = (7,4)
+        self.reyNegroUbicacion = (0,4)
+        self.checkMate = False
+        self.tablas_stalemate = False
     """
     toma un movimiento como parámetro y lo ejecuta
     (esto no funcionará para enroque, promoción de peón y captura al paso)
@@ -32,6 +36,11 @@ class GameState():
         self.tablero[movimiento.filFinal][movimiento.colFinal] = movimiento.piezaMovida
         self.logMovimientos.append(movimiento) # registrar el movimiento para que lo deshagamos más tarde
         self.muevenBlancas = not self.muevenBlancas # swap players
+        # actualizar la ubicacion del rey si es movido
+        if movimiento.piezaMovida == 'bR':
+            self.reyBlancoUbicacion = (movimiento.filFinal, movimiento.colFinal)
+        elif movimiento.piezaMovida == 'nR':
+            self.reyNegroUbicacion = (movimiento.filFinal, movimiento.colFinal)
     """
     deshacer el ultimo movimiento hecho
     """
@@ -41,11 +50,52 @@ class GameState():
             self.tablero[mov.filInicial][mov.colInicial] = mov.piezaMovida
             self.tablero[mov.filFinal][mov.colFinal] = mov.piezaCapturada
             self.muevenBlancas = not self.muevenBlancas # el switch retrocede
+            # actualizar la ubicacion del rey si es actualizada
+            if mov.piezaMovida == 'bR':
+                self.reyBlancoUbicacion = (mov.filInicial, mov.colInicial)
+            elif mov.piezaMovida == 'nR':
+                self.reyNegroUbicacion = (mov.filInicial, mov.colInicial)
     """
     All moves considering checks
     """
     def getMovValidos(self):
-        return self.getTodoPosiblesMov() # por ahora no vamos a preocuparnos por los checks
+        #1) generar todos los posibles movimientos
+        movs = self.getTodoPosiblesMov()
+        #2) por cada movimiento, realizar el movimiento
+        for i in range(len(movs)-1, -1, -1):
+            self.mover(movs[i])
+            #3) generar todos los movimientos del oponente, ver si atacan a tu rey
+            #4) para cada uno de los movimientos de tu oponente, mira si atacan a tu rey
+            self.muevenBlancas = not self.muevenBlancas
+            if self.chequear():
+                movs.remove(movs[i]) #5) si atacan a tu rey, movimiento no válido
+            self.muevenBlancas = not self.muevenBlancas
+            self.deshacerMov()
+        if len(movs) == 0:
+            if self.chequear():
+                self.checkMate = True
+            else :
+                self.tablas_stalemate = True
+        else:
+            self.checkMate = False
+            self.tablas_stalemate = False
+        
+        return movs
+    
+    def chequear(self):
+        if self.muevenBlancas:
+            return self.sqBajoAtaque(self.reyBlancoUbicacion[0], self.reyBlancoUbicacion[1])
+        else:
+            return self.sqBajoAtaque(self.reyNegroUbicacion[0], self.reyNegroUbicacion[1])
+    
+    def sqBajoAtaque(self, fil, col):
+        self.muevenBlancas = not self.muevenBlancas # cambiar al turno enemigo
+        oponenteMueve = self.getTodoPosiblesMov()
+        self.muevenBlancas = not self.muevenBlancas # regresar el turno anterior
+        for m in oponenteMueve:
+            if m.filFinal == fil and m.colFinal == col: # cuadro (sq) bajo ataque
+                return True
+        return False
     """
     All moves without considering checks
     """
