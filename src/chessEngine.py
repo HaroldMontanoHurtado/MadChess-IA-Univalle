@@ -25,8 +25,13 @@ class GameState():
         self.logMovimientos = []
         self.reyBlancoUbicacion = (7,4)
         self.reyNegroUbicacion = (0,4)
+        self.inCheck = False
+        self.pins = []
+        self.checks = []
+        ''' variables fueron cambiadas
         self.checkMate = False
-        self.tablas_stalemate = False
+        self.tablas_stalemate = False'''
+        
     """
     toma un movimiento como parámetro y lo ejecuta
     (esto no funcionará para enroque, promoción de peón y captura al paso)
@@ -55,31 +60,46 @@ class GameState():
                 self.reyBlancoUbicacion = (mov.filInicial, mov.colInicial)
             elif mov.piezaMovida == 'nR':
                 self.reyNegroUbicacion = (mov.filInicial, mov.colInicial)
-    """
+    '''
     All moves considering checks
-    """
+    '''
     def getMovValidos(self):
-        #1) generar todos los posibles movimientos
-        movs = self.getTodoPosiblesMov()
-        #2) por cada movimiento, realizar el movimiento
-        for i in range(len(movs)-1, -1, -1):
-            self.mover(movs[i])
-            #3) generar todos los movimientos del oponente, ver si atacan a tu rey
-            #4) para cada uno de los movimientos de tu oponente, mira si atacan a tu rey
-            self.muevenBlancas = not self.muevenBlancas
-            if self.chequear():
-                movs.remove(movs[i]) #5) si atacan a tu rey, movimiento no válido
-            self.muevenBlancas = not self.muevenBlancas
-            self.deshacerMov()
-        if len(movs) == 0:
-            if self.chequear():
-                self.checkMate = True
-            else :
-                self.tablas_stalemate = True
+        movs = []
+        self.inCheck, self.pins, self.checks = self.chequearPinsYChecks()
+        if self.muevenBlancas:
+            reyFil = self.reyBlancoUbicacion[0]
+            reyCol = self.reyBlancoUbicacion[1]
         else:
-            self.checkMate = False
-            self.tablas_stalemate = False
-        
+            reyFil = self.reyNegroUbicacion[0]
+            reyCol = self.reyNegroUbicacion[1]
+        if self.inCheck:
+            if len(self.checks) == 1: # only 1 check, block check or move king
+                movs = self.getTodoPosiblesMov()
+                # to block a check you must move a piece into one of the square between the enemy piece and king
+                check = self.checks[0]
+                checkFil = check[0]
+                checkCol = check[1]
+                piezaChequeada = self.tablero[checkFil][checkCol] # pieza enemiga causando check
+                casillasValidas = [] # casilla a la que se puede mover
+                # if knight, must captured knight or move king, other piece can be blocked
+                if piezaChequeada[1] == 'C':
+                    casillasValidas = [(checkFil, checkCol)]
+                else:
+                    for i in range(1, 8):
+                        casillaValida = (reyFil + check[2]*i, reyCol + check[3]) # check[2] and check[3] are the check directions
+                        casillasValidas.append(casillaValida)
+                        if casillaValida[0] == checkFil and casillaValida[1] == checkCol: #once you get to piece end checks
+                            break
+                # get rid of any moves that don't block check or move king
+                for i in range(len(movs)-1,-1,-1): #go through backwards when you are removing from a list as iterating
+                    if movs[i].piezaMovida[1] != 'K': #move doesn't move king so it must block or captured
+                        if not(movs[i].filFinal, movs[i].colFinal) in casillasValidas: #move doesn't block check o captured piece
+                            movs.remove(movs[i])
+            else:
+                self.getMovRey(reyFil, reyCol, movs)
+        else:
+            movs = self.getTodoPosiblesMov()
+
         return movs
     
     def chequear(self):
@@ -208,6 +228,72 @@ class GameState():
                 # verifica que no haya aliados (ocupada solo espacios vacios o enemigos)
                 if piezaFinal[0] != colorAliado:
                     mov.append(Movimiento((fil,col),(filFinal,colFinal),self.tablero))
+    '''
+    Return if the player is in check, a list of pins, and a list of check
+    '''
+    def chequearPinsYChecks(self):
+        pins = [] #squares where the allied pinned piece is and direction pinned from
+        checks = [] #squares where enemy is applying check
+        inCheck = False
+        if self.muevenBlancas:
+            colorEnemigo = 'n'
+            colorAliado = 'b'
+            filInicial = self.reyBlancoUbicacion[0]
+            colInicial = self.reyBlancoUbicacion[1]
+        else:
+            colorEnemigo = 'b'
+            colorAliado = 'n'
+            filInicial = self.reyNegroUbicacion[0]
+            colInicial = self.reyNegroUbicacion[1]
+        #check outward from king for pins and checks, keep track of pins
+        direcciones = ((-1,-1),(-1,1),(-1,0),(0,1),(1,0),(0,-1),(1,-1),(1,1))
+        for j in range(len(direcciones)):
+            d = direcciones[j]
+            posiblePin = () # reset possible pins
+            for i in range(1,8):
+                filFinal = filInicial + d[0]*i
+                colFinal = colInicial + d[1]*i
+                if 0 <= filFinal < 8 and 0 <= colFinal < 8:
+                    piezaFinal = self.tablero[filFinal][colFinal]
+                    if piezaFinal[0] == colorAliado:
+                        if posiblePin == (): # 1st allied piece could be pinned
+                            posiblePin = (filFinal, colFinal, d[0], d[1])
+                        else: #2nd allied piece, so no pin or check possible in this direction
+                            break
+                    elif piezaFinal[0] == colorEnemigo:
+                        tipo = piezaFinal[1]
+                        # 5 possibilities here in this complex conditional
+                        #1.) orthogonally away from king and piece is a rook
+                        #2.) diagonally away from king and piece is a bishop
+                        #3.) 1 square away diagonally from king and piece is a pawn
+                        #4.) any direction and piece is a queen
+                        #5.) any direction 1 square away and piece is a king (this is necessary
+                        # to prevent a king move to a square controlled by another king)
+                        if (0 <= j <= 3 and tipo == 'T') or \
+                            (4 <= j <= 7 and tipo == 'A') or \
+                            (i == 1 and tipo == 'P' and ((colorEnemigo == 'b' and 6 <= j <= 7) or (colorEnemigo == 'n' and 4 <= j <= 5))) or \
+                            (tipo == 'D') or (i == 1 and tipo == 'R'):
+                                if posiblePin == (): # no piece blocking, so check
+                                    inCheck = True
+                                    checks.append((filFinal, colFinal, d[0], d[1]))
+                                    break
+                                else:
+                                    pins.append(posiblePin)
+                                    break
+                        else:
+                            break
+        # check for knight checks
+        movsCaballo = ((-2,-1),(-2,1),(-1,2),(1,2),(2,1),(2,-1),(1,-2),(-1,-2))
+        for m in movsCaballo:
+            filFinal = filInicial + m[0]
+            colFinal = colInicial + m[1]
+            if 0 <= filFinal < 8 and 0 <= colFinal < 8:
+                piezaFinal = self.tablero[filFinal][colFinal]
+                if piezaFinal[0] == colorEnemigo and piezaFinal == 'N': #enemy knight attacking king
+                    inCheck = True
+                    checks.append((filFinal, colFinal, m[0],  m[1]))
+        
+        return inCheck, pins, checks
 
 class Movimiento():
     # map keys values
