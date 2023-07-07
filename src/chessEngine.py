@@ -39,7 +39,7 @@ class GameState():
         self.enroqueBlancoLadoDama = True
         self.enroqueNegroLadoRey = True
         self.enroqueNegroLadoDama = True
-        self.logEnroquesRights = [EnroqueRights(
+        self.logDerechosEnroque = [DerechosEnroque(
             self.enroqueBlancoLadoRey,self.enroqueNegroLadoRey,self.enroqueBlancoLadoDama,self.enroqueNegroLadoDama)]
         
     """
@@ -50,7 +50,7 @@ class GameState():
         self.tablero[movs.filInicial][movs.colInicial] = '--'
         self.tablero[movs.filFinal][movs.colFinal] = movs.piezaMovida
         self.logMovimientos.append(movs) # registrar el movimiento para que lo deshagamos más tarde
-        self.muevenBlancas = not self.muevenBlancas # swap players
+        self.muevenBlancas = not self.muevenBlancas # cambio de turno || swap players
         # actualizar la ubicacion del rey si es movido
         if movs.piezaMovida == 'bR':
             self.reyBlancoUbicacion = (movs.filFinal, movs.colFinal)
@@ -61,25 +61,25 @@ class GameState():
             self.posibleCaptAlPaso = ((movs.filFinal + movs.filInicial)//2, movs.colFinal)
         else:
             self.posibleCaptAlPaso = ()
-        # if en passant move, must update the board to capture the pawn
+        # si se mueve al paso, debe actualizar el tablero para capturar el peón
         if movs.alPaso:
             self.tablero[movs.filInicial][movs.colInicial] = '--'
-        # if pawn promotion change piece
+        # si la promoción de peón cambia de pieza
         if movs.promocionPeon:
-            piezaPromovida = input('Promove a D, T, A or C: ') #we can make this part of the ui later
+            piezaPromovida = input('Promove a D, T, A or C: ') #podemos hacer que esto sea parte de la interfaz de usuario más tarde
             self.board[movs.filFinal][movs.colFinal] = movs.piezaMovida[0] + piezaPromovida
-        # update castling rights
-        self.actualizarEnroqueRights(movs)
-        self.logEnroquesRights.append(EnroqueRights(
+        # actualizar los derechos de enroque
+        self.actualizarDerechosEnroque(movs)
+        self.logDerechosEnroque.append(DerechosEnroque(
             self.enroqueBlancoLadoRey,self.enroqueNegroLadoRey,self.enroqueBlancoLadoDama,self.enroqueNegroLadoDama))
-        # castle moves
+        # movimientos de enroque
         if movs.enroque:
             if movs.colFinal - movs.colInicial == 2:
-                self.tablero[movs.filFinal][movs.colFinal - 1] = self.tablero[movs.filFinal][movs.colFinal + 1] # move rook
-                self.tablero[movs.filFinal][movs.colFinal + 1] = '--' # empty space where rook was
+                self.tablero[movs.filFinal][movs.colFinal - 1] = self.tablero[movs.filFinal][movs.colFinal + 1] # mover torre
+                self.tablero[movs.filFinal][movs.colFinal + 1] = '--' # espacio vacío donde estaba la torre
             else:
-                self.tablero[movs.filFinal][movs.colFinal + 1] = self.tablero[movs.filFinal][movs.colFinal - 2] # move rook
-                self.tablero[movs.filFinal][movs.colFinal - 2] = '--' # empty space where rook was
+                self.tablero[movs.filFinal][movs.colFinal + 1] = self.tablero[movs.filFinal][movs.colFinal - 2] # mover torre
+                self.tablero[movs.filFinal][movs.colFinal - 2] = '--' # espacio vacío donde estaba la torre
         
     """
     deshacer el ultimo movimiento hecho
@@ -97,31 +97,31 @@ class GameState():
                 self.reyNegroUbicacion = (mov.filInicial, mov.colInicial)
             # deshacer la captura al paso es diferente
             if mov.alPaso:
-                self.tablero[mov.filFinal][mov.colFinal] = '--' #removes the pawn that was added in the wrong square
-                self.tablero[mov.filInicial][mov.colInicial] = mov.piezaCapturada #puts the pawn back on the correct square it was captured from
-                self.posibleCaptAlPaso = (mov.filFinal, mov.colFinal) #allow an en passant to happen on the next move
-            #undo a 2 square pawn advance should make posibleCaptAlPaso = () again
+                self.tablero[mov.filFinal][mov.colFinal] = '--' #elimina el peón que se agregó en el cuadro equivocado
+                self.tablero[mov.filInicial][mov.colInicial] = mov.piezaCapturada #vuelve a poner el peón en la casilla correcta de la que fue capturado
+                self.posibleCaptAlPaso = (mov.filFinal, mov.colFinal) #permitir que ocurra un paso al paso en el siguiente movimiento
+            #deshacer un avance de peón de 2 casillas debería hacer posibleCaptAlPaso = () otra vez
             if mov.piezaMovida[1] == 'P' and abs(mov.filInicial - mov.filFinal) == 2:
                 self.posibleCaptAlPaso = ()
-            #give back castle rights if move took them away
-            self.logEnroquesRights.pop() # remove last moves updates
-            enroquesRights = self.logEnroquesRights[-1]
-            self.enroqueBlancoLadoRey = enroquesRights.ebr
-            self.enroqueNegroLadoRey = enroquesRights.enr
-            self.enroqueBlancoLadoDama = enroquesRights.ebd
-            self.enroqueNegroLadoDama = enroquesRights.end
+            #devolver los derechos del castillo si el movimiento se los llevó
+            self.logDerechosEnroque.pop() # eliminar las actualizaciones de los últimos movimientos
+            derechosEnroque = self.logDerechosEnroque[-1]
+            self.enroqueBlancoLadoRey = derechosEnroque.ebr
+            self.enroqueNegroLadoRey = derechosEnroque.enr
+            self.enroqueBlancoLadoDama = derechosEnroque.ebd
+            self.enroqueNegroLadoDama = derechosEnroque.end
             
-            #undo castle
+            #deshacer enroque
             if mov.enroque:
                 if mov.colFinal - mov.colInicial == 2:
-                    self.tablero[mov.filFinal][mov.colFinal + 1] = self.tablero[mov.filFinal][mov.colFinal - 1] # move rook
-                    self.tablero[mov.filFinal][mov.colFinal - 1] = '--' # empty space where rook was
-                else: # queenside
-                    self.tablero[mov.filFinal][mov.colFinal - 2] = self.tablero[mov.filFinal][mov.colFinal + 1] # move rook
-                    self.tablero[mov.filFinal][mov.colFinal + 1] = '--' # empty space where rook was
+                    self.tablero[mov.filFinal][mov.colFinal + 1] = self.tablero[mov.filFinal][mov.colFinal - 1] # mover torre
+                    self.tablero[mov.filFinal][mov.colFinal - 1] = '--' # espacio vacío donde estaba la torre
+                else: # flanco de dama
+                    self.tablero[mov.filFinal][mov.colFinal - 2] = self.tablero[mov.filFinal][mov.colFinal + 1] # mover torre
+                    self.tablero[mov.filFinal][mov.colFinal + 1] = '--' # espacio vacío donde estaba la torre
         
     '''
-    All moves considering checks
+    Todos los movimientos considerando checks (jaque) || All moves considering checks
     '''
     def getMovValidos(self):
         movs = []
@@ -496,7 +496,7 @@ class GameState():
                     checks.append((filFinal, colFinal, m[0],  m[1]))
         return inCheck, pins, checks
 
-    def actualizarEnroqueRights(self, movs):
+    def actualizarDerechosEnroque(self, movs):
         pass
         if movs.piezaMovida == 'bR':
             self.enroqueBlancoLadoDama = False
@@ -517,7 +517,7 @@ class GameState():
                 elif movs.colInicial == 0:
                     self.enroqueNegroLadoDama = False
 
-class EnroqueRights():
+class DerechosEnroque():
     def __init__(self, ebr, enr, ebd, end):
         self.ebr = ebr #enroque blanco lado rey
         self.enr = enr #enroque negro lado rey
