@@ -69,8 +69,8 @@ def main():
                 if e.key == pygame.K_z: # se deshace el mov al presionar 'z'
                     gs.deshacerMov()
                     movHecho = True
-            
         if movHecho:
+            animacionMov(gs.logMovimientos[-1], pantalla, gs.tablero, reloj)
             movValidos = gs.getMovValidos()
             movHecho = False
             
@@ -106,6 +106,7 @@ def dibujarEstadoJuego(pantalla, gs, movValidos, sqSeleccionado):
 Dibuja los cuadrados en la pizarra. El cuadrado superior izquierdo siempre es claro.
 """
 def dibujarTablero(pantalla):
+    global colores
     colores = [pygame.Color('#bac8d3'), pygame.Color('#18141d')]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
@@ -120,6 +121,30 @@ def dibujarPiezas(pantalla, tablero):
             pieza = tablero[r][c]
             if pieza != '--': # not empty square
                 pantalla.blit(IMAGES[pieza], pygame.Rect(c*SQ_TAM, r*SQ_TAM, SQ_TAM, SQ_TAM))
+'''
+animar un movimientos
+'''
+def animacionMov(mov, pantalla, tablero, reloj):
+    global colores
+    dF = mov.filFinal - mov.filInicial
+    dC = mov.colFinal - mov.colInicial
+    framesPorSq = 10 # fotogramas para mover una casilla
+    framesContador = (abs(dF) + abs(dC)) * framesPorSq
+    for frame in range(framesContador + 1):
+        f, c = (mov.filInicial + dF*frame/framesContador, mov.colInicial + dC*frame/framesContador)
+        dibujarTablero(pantalla)
+        dibujarPiezas(pantalla, tablero)
+        #erase the piece moved from its ending square
+        color = colores[(mov.filFinal + mov.colFinal) % 2]
+        casillaFinal = pygame.Rect(mov.colFinal*SQ_TAM, mov.filFinal*SQ_TAM, SQ_TAM, SQ_TAM)
+        pygame.draw.rect(pantalla, color, casillaFinal)
+        # draw captured piece onto rectangle
+        if mov.piezaCapturada != '--':
+            pantalla.blit(IMAGES[mov.piezaCapturada], casillaFinal)
+        #draw moving piece
+        pantalla.blit(IMAGES[mov.piezaMovida], pygame.Rect(c*SQ_TAM, f*SQ_TAM, SQ_TAM, SQ_TAM))
+        pygame.display.flip()
+        reloj.tick(60)
 
 if __name__ == "__main__":
     main()
