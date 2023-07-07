@@ -49,8 +49,8 @@ class GameState():
     def mover(self, movs): #makeMove
         self.tablero[movs.filInicial][movs.colInicial] = '--'
         self.tablero[movs.filFinal][movs.colFinal] = movs.piezaMovida
-        self.logMovimientos.append(movs) # registrar el movimiento para que lo deshagamos más tarde
-        self.muevenBlancas = not self.muevenBlancas # cambio de turno || swap players
+        self.logMovimientos.append(movs) # registro de movs
+        self.muevenBlancas = not self.muevenBlancas # cambio de turno || switch turn
         # actualizar la ubicacion del rey si es movido
         if movs.piezaMovida == 'bR':
             self.reyBlancoUbicacion = (movs.filFinal, movs.colFinal)
@@ -63,7 +63,7 @@ class GameState():
             self.posibleCaptAlPaso = ()
         # si se mueve al paso, debe actualizar el tablero para capturar el peón
         if movs.alPaso:
-            self.tablero[movs.filInicial][movs.colInicial] = '--'
+            self.tablero[movs.filInicial][movs.colFinal] = '--'
         # si la promoción de peón cambia de pieza
         if movs.promocionPeon:
             piezaPromovida = input('Promove a D, T, A or C: ') #podemos hacer que esto sea parte de la interfaz de usuario más tarde
@@ -230,17 +230,17 @@ class GameState():
                 if self.tablero[f+cantMov][c-1][0] == colorEnemigo:
                     if f+cantMov == filAtras: #si la pieza llega al rango del banco entonces es una promoción de peón
                         promoPeon = True
-                    mov.append(Movimiento((f, c), (f+cantMov, c-1), self.tablero,promocionPeon=promoPeon))
-                    if (f+cantMov, c-1) == self.posibleCaptAlPaso:
-                        mov.append(Movimiento((f, c), (f+cantMov, c-1), self.tablero,alpaso=True))
+                    mov.append(Movimiento((f, c), (f+cantMov, c-1), self.tablero, promocionPeon=promoPeon))
+                if (f+cantMov, c-1) == self.posibleCaptAlPaso:
+                    mov.append(Movimiento((f, c), (f+cantMov, c-1), self.tablero, alpaso=True))
         if c+1 <= 7: # capturar por derecha
             if not piezaPinned or direccionPin == (cantMov, 1):
                 if self.tablero[f+cantMov][c+1][0] == colorEnemigo:
                     if f+cantMov == filAtras: #si la pieza llega al rango del banco entonces es una promoción de peón
                         promoPeon = True
-                    mov.append(Movimiento((f, c), (f+cantMov, c+1), self.tablero,promocionPeon=promoPeon))
-                    if (f+cantMov, c+1) == self.posibleCaptAlPaso:
-                        mov.append(Movimiento((f, c), (f+cantMov, c+1), self.tablero,alpaso=True))
+                    mov.append(Movimiento((f, c), (f+cantMov, c+1), self.tablero, promocionPeon=promoPeon))
+                if (f+cantMov, c+1) == self.posibleCaptAlPaso:
+                    mov.append(Movimiento((f, c), (f+cantMov, c+1), self.tablero, alpaso=True))
     
     def getMovTorre(self, f, c, mov):
         piezaPinned = False
