@@ -497,7 +497,6 @@ class GameState():
         return inCheck, pins, checks
 
     def actualizarDerechosEnroque(self, movs):
-        pass
         if movs.piezaMovida == 'bR':
             self.enroqueBlancoLadoDama = False
             self.enroqueBlancoLadoRey = False

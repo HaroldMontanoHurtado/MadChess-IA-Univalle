@@ -51,8 +51,8 @@ def main():
                     sqSeleccionado = () # deseleccionar
                     clicsDelJugador = [] # borrar clics del jugador
                 else:
-                        sqSeleccionado = (fil,col)
-                        clicsDelJugador.append(sqSeleccionado) # agregar tanto para el primer como para el segundo clic
+                    sqSeleccionado = (fil,col)
+                    clicsDelJugador.append(sqSeleccionado) # agregar tanto para el primer como para el segundo clic
                 if len(clicsDelJugador) == 2: # después del segundo clic
                     movimiento = ChessEngine.Movimiento(clicsDelJugador[0], clicsDelJugador[1], gs.tablero)
                     print(movimiento.getChessNotation())
