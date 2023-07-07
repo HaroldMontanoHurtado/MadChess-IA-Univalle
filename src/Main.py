@@ -47,7 +47,6 @@ def main():
                 ubicacionMouse = pygame.mouse.get_pos() #(x,y) ubicacion del mouse
                 col = ubicacionMouse[0] // SQ_TAM
                 fil = ubicacionMouse[1] // SQ_TAM
-                #if gs.tablero[fil][col] != '--':
                 if sqSeleccionado == (fil,col): # El usuario hizo clic en el mismo cuadrado dos veces.
                     sqSeleccionado = () # deseleccionar
                     clicsDelJugador = [] # borrar clics del jugador
@@ -57,12 +56,13 @@ def main():
                 if len(clicsDelJugador) == 2: # después del segundo clic
                     movimiento = ChessEngine.Movimiento(clicsDelJugador[0], clicsDelJugador[1], gs.tablero)
                     print(movimiento.getChessNotation())
-                    if movimiento in movValidos: # verificar si el mov existe entre los validos
-                        gs.mover(movimiento)
-                        movHecho = True
-                        sqSeleccionado = () # restablecer clics de usuario
-                        clicsDelJugador = []
-                    else:
+                    for i in range(len(movValidos)):
+                        if movimiento == movValidos[i]:
+                            gs.mover(movValidos[i])
+                            movHecho = True
+                            sqSeleccionado = () # restablecer clics de usuario
+                            clicsDelJugador = []
+                    if not movHecho:
                         clicsDelJugador = [sqSeleccionado]
             # Eventos de TECLADO : key handler
             elif e.type == pygame.KEYDOWN:
