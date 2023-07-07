@@ -5,9 +5,11 @@ Tambien mantendrá un registro de movimientos.
 """
 class GameState():
     def __init__(self):
-        # tablero de 8x8.
-        # La primera letra representa si la pieza es negra o blanca, 'n' o 'b', respectivamente.
-        # '--' representa espacios blancos, vacios.
+        '''
+        tablero de 8x8.
+        La primera letra representa si la pieza es negra o blanca, 'n' o 'b', respectivamente.
+        '--' representa espacios blancos, vacios.
+        '''
         self.tablero = [
             ['nT','nC','nA','nD','nR','nA','nC','nT'],
             ['nP','nP','nP','nP','nP','nP','nP','nP'],
@@ -29,20 +31,56 @@ class GameState():
         self.pins = []
         self.checks = []
         
+        self.checkMate = False
+        self.tablas_staleMate = False
+        self.posibleCaptAlPaso = () # casilla donde puede ocurrir la captura al pasar
+        # derechos de enroque || castling rights
+        self.enroqueBlancoLadoRey = True
+        self.enroqueBlancoLadoDama = True
+        self.enroqueNegroLadoRey = True
+        self.enroqueNegroLadoDama = True
+        self.logEnroquesRights = [EnroqueRights(
+            self.enroqueBlancoLadoRey,self.enroqueNegroLadoRey,self.enroqueBlancoLadoDama,self.enroqueNegroLadoDama)]
+        
     """
     toma un movimiento como parámetro y lo ejecuta
     (esto no funcionará para enroque, promoción de peón y captura al paso)
     """
-    def mover(self, movimiento): #makeMove
-        self.tablero[movimiento.filInicial][movimiento.colInicial] = '--'
-        self.tablero[movimiento.filFinal][movimiento.colFinal] = movimiento.piezaMovida
-        self.logMovimientos.append(movimiento) # registrar el movimiento para que lo deshagamos más tarde
+    def mover(self, movs): #makeMove
+        self.tablero[movs.filInicial][movs.colInicial] = '--'
+        self.tablero[movs.filFinal][movs.colFinal] = movs.piezaMovida
+        self.logMovimientos.append(movs) # registrar el movimiento para que lo deshagamos más tarde
         self.muevenBlancas = not self.muevenBlancas # swap players
         # actualizar la ubicacion del rey si es movido
-        if movimiento.piezaMovida == 'bR':
-            self.reyBlancoUbicacion = (movimiento.filFinal, movimiento.colFinal)
-        elif movimiento.piezaMovida == 'nR':
-            self.reyNegroUbicacion = (movimiento.filFinal, movimiento.colFinal)
+        if movs.piezaMovida == 'bR':
+            self.reyBlancoUbicacion = (movs.filFinal, movs.colFinal)
+        elif movs.piezaMovida == 'nR':
+            self.reyNegroUbicacion = (movs.filFinal, movs.colFinal)
+        # si el peón se mueve dos veces, el próximo movimiento puede capturar al paso
+        if movs.piezaMovida[1] == 'P' and abs(movs.filInicial - movs.filFinal) == 2:
+            self.posibleCaptAlPaso = ((movs.filFinal + movs.filInicial)//2, movs.colFinal)
+        else:
+            self.posibleCaptAlPaso = ()
+        # if en passant move, must update the board to capture the pawn
+        if movs.alPaso:
+            self.tablero[movs.filInicial][movs.colInicial] = '--'
+        # if pawn promotion change piece
+        if movs.promocionPeon:
+            piezaPromovida = input('Promove a D, T, A or C: ') #we can make this part of the ui later
+            self.board[movs.filFinal][movs.colFinal] = movs.piezaMovida[0] + piezaPromovida
+        # update castling rights
+        self.actualizarEnroqueRights(movs)
+        self.logEnroquesRights.append(EnroqueRights(
+            self.enroqueBlancoLadoRey,self.enroqueNegroLadoRey,self.enroqueBlancoLadoDama,self.enroqueNegroLadoDama))
+        # castle moves
+        if movs.enroque:
+            if movs.colFinal - movs.colInicial == 2:
+                self.tablero[movs.filFinal][movs.colFinal - 1] = self.tablero[movs.filFinal][movs.colFinal + 1] # move rook
+                self.tablero[movs.filFinal][movs.colFinal + 1] = '--' # empty space where rook was
+            else:
+                self.tablero[movs.filFinal][movs.colFinal + 1] = self.tablero[movs.filFinal][movs.colFinal - 2] # move rook
+                self.tablero[movs.filFinal][movs.colFinal - 2] = '--' # empty space where rook was
+        
     """
     deshacer el ultimo movimiento hecho
     """
@@ -57,6 +95,31 @@ class GameState():
                 self.reyBlancoUbicacion = (mov.filInicial, mov.colInicial)
             elif mov.piezaMovida == 'nR':
                 self.reyNegroUbicacion = (mov.filInicial, mov.colInicial)
+            # deshacer la captura al paso es diferente
+            if mov.alPaso:
+                self.tablero[mov.filFinal][mov.colFinal] = '--' #removes the pawn that was added in the wrong square
+                self.tablero[mov.filInicial][mov.colInicial] = mov.piezaCapturada #puts the pawn back on the correct square it was captured from
+                self.posibleCaptAlPaso = (mov.filFinal, mov.colFinal) #allow an en passant to happen on the next move
+            #undo a 2 square pawn advance should make posibleCaptAlPaso = () again
+            if mov.piezaMovida[1] == 'P' and abs(mov.filInicial - mov.filFinal) == 2:
+                self.posibleCaptAlPaso = ()
+            #give back castle rights if move took them away
+            self.logEnroquesRights.pop() # remove last moves updates
+            enroquesRights = self.logEnroquesRights[-1]
+            self.enroqueBlancoLadoRey = enroquesRights.ebr
+            self.enroqueNegroLadoRey = enroquesRights.enr
+            self.enroqueBlancoLadoDama = enroquesRights.ebd
+            self.enroqueNegroLadoDama = enroquesRights.end
+            
+            #undo castle
+            if mov.enroque:
+                if mov.colFinal - mov.colInicial == 2:
+                    self.tablero[mov.filFinal][mov.colFinal + 1] = self.tablero[mov.filFinal][mov.colFinal - 1] # move rook
+                    self.tablero[mov.filFinal][mov.colFinal - 1] = '--' # empty space where rook was
+                else: # queenside
+                    self.tablero[mov.filFinal][mov.colFinal - 2] = self.tablero[mov.filFinal][mov.colFinal + 1] # move rook
+                    self.tablero[mov.filFinal][mov.colFinal + 1] = '--' # empty space where rook was
+        
     '''
     All moves considering checks
     '''
@@ -99,6 +162,15 @@ class GameState():
         else: # no está bajo amenaza, por lo que todos los movimientos están bien
             movs = self.getTodoPosiblesMov()
 
+        if len(movs) == 0:
+            if self.inCheck:
+                self.checkMate = True
+            else:
+                self.tablas_staleMate = True
+        else:
+            self.checkMate = False
+            self.tablas_staleMate = False
+        
         return movs
     
     def chequear(self):
@@ -107,14 +179,6 @@ class GameState():
         else:
             return self.sqBajoAtaque(self.reyNegroUbicacion[0], self.reyNegroUbicacion[1])
     
-    def sqBajoAtaque(self, fil, col):
-        self.muevenBlancas = not self.muevenBlancas # cambiar al turno enemigo
-        oponenteMueve = self.getTodoPosiblesMov()
-        self.muevenBlancas = not self.muevenBlancas # regresar el turno anterior
-        for m in oponenteMueve:
-            if m.filFinal == fil and m.colFinal == col: # cuadro (sq) bajo ataque
-                return True
-        return False
     """
     Todos los movimientos sin considerar checks
     """
@@ -141,36 +205,42 @@ class GameState():
                 self.pins.remove(self.pins[i])
                 break
         
-        if self.muevenBlancas: # mueven peones blancos
-            if self.tablero[f-1][c] == '--': # mover 1 casilla
-                if not piezaPinned or direccionPin == (-1,0):
-                    mov.append(Movimiento((f, c), (f-1, c), self.tablero))
-                    if f == 6 and self.tablero[f-2][c] == '--': # mover 2 casillas
-                        mov.append(Movimiento((f, c), (f-2, c), self.tablero))
-            #capturas
-            if c-1 >= 0: # capturar por izquierda
-                if self.tablero[f-1][c-1][0] == 'n':
-                    if not piezaPinned or direccionPin == (-1,-1):
-                        mov.append(Movimiento((f, c), (f-1, c-1), self.tablero))
-            if c+1 <= 7: # capturar por derecha
-                if self.tablero[f-1][c+1][0] == 'n':
-                    if not piezaPinned or direccionPin == (-1, 1):
-                        mov.append(Movimiento((f, c), (f-1, c+1), self.tablero))
-        else: # mueven peones negros
-            if self.tablero[f+1][c] == '--': # mover 1 casilla
-                if not piezaPinned or direccionPin == (1,0):
-                    mov.append(Movimiento((f, c), (f+1, c), self.tablero))
-                    if f == 1 and self.tablero[f+2][c] == '--': # mover 2 casillas
-                        mov.append(Movimiento((f, c), (f+2, c), self.tablero))
-            #capturas
-            if c-1 >= 0: # capturar por izquierda
-                if self.tablero[f+1][c-1][0] == 'b':
-                    if not piezaPinned or direccionPin == (1,-1):
-                        mov.append(Movimiento((f, c), (f+1, c-1), self.tablero))
-            if c+1 <= 7: # capturar por derecha
-                if self.tablero[f+1][c+1][0] == 'b':
-                    if not piezaPinned or direccionPin == (1, 1):
-                        mov.append(Movimiento((f, c), (f+1, c+1), self.tablero))
+        if self.muevenBlancas:
+            cantMov = -1
+            filInicial = 6
+            filAtras = 0
+            colorEnemigo = 'n'
+        else:
+            cantMov = 1
+            filInicial = 1
+            filAtras = 7
+            colorEnemigo = 'b'
+        promoPeon = False
+        
+        if self.tablero[f+cantMov][c] == '--': # mover 1 casilla
+            if not piezaPinned or direccionPin == (cantMov,0):
+                if f+cantMov == filAtras:
+                    promoPeon = True
+                mov.append(Movimiento((f, c), (f+cantMov, c), self.tablero, promocionPeon=promoPeon))
+                if f == filInicial and self.tablero[f+2*cantMov][c] == '--': # mover 2 casillas
+                    mov.append(Movimiento((f, c), (f+2*cantMov, c), self.tablero))
+        #capturas
+        if c-1 >= 0: # capturar por izquierda
+            if not piezaPinned or direccionPin == (cantMov,-1):
+                if self.tablero[f+cantMov][c-1][0] == colorEnemigo:
+                    if f+cantMov == filAtras: #si la pieza llega al rango del banco entonces es una promoción de peón
+                        promoPeon = True
+                    mov.append(Movimiento((f, c), (f+cantMov, c-1), self.tablero,promocionPeon=promoPeon))
+                    if (f+cantMov, c-1) == self.posibleCaptAlPaso:
+                        mov.append(Movimiento((f, c), (f+cantMov, c-1), self.tablero,alpaso=True))
+        if c+1 <= 7: # capturar por derecha
+            if not piezaPinned or direccionPin == (cantMov, 1):
+                if self.tablero[f+cantMov][c+1][0] == colorEnemigo:
+                    if f+cantMov == filAtras: #si la pieza llega al rango del banco entonces es una promoción de peón
+                        promoPeon = True
+                    mov.append(Movimiento((f, c), (f+cantMov, c+1), self.tablero,promocionPeon=promoPeon))
+                    if (f+cantMov, c+1) == self.posibleCaptAlPaso:
+                        mov.append(Movimiento((f, c), (f+cantMov, c+1), self.tablero,alpaso=True))
     
     def getMovTorre(self, f, c, mov):
         piezaPinned = False
@@ -257,7 +327,7 @@ class GameState():
         self.getMovTorre(fil,col,mov)
         self.getMovAlfil(fil,col,mov)
     
-    def getMovRey(self, f, c, mov):
+    def getMovRey(self, f, c, movs):
         movsFil = (-1,-1,-1,0,0,1,1,1)
         movsCol = (-1,0,1,-1,1,-1,0,1)
         colorAliado = 'b' if self.muevenBlancas else 'n'
@@ -274,14 +344,92 @@ class GameState():
                         self.reyNegroUbicacion = (filFinal, colFinal)
                     inCheck, pins, checks = self.chequearPinsYChecks()
                     if not inCheck:
-                        mov.append(Movimiento((f,c), (filFinal, colFinal), self.tablero))
+                        movs.append(Movimiento((f,c), (filFinal, colFinal), self.tablero))
                     # Coloque el rey de vuelta en la ubicación original
                     if colorAliado == 'b':
                         self.reyBlancoUbicacion = (f, c)
                     else:
                         self.reyNegroUbicacion = (f, c)
+        self.getMovEnroque(f, c, movs, colorAliado)
     '''
-    Return if the player is in check, a list of pins, and a list of check
+    Genere movimientos de castillo para el rey en (f, c) y agréguelos a la lista de movimientos
+    '''
+    def getMovEnroque(self, f, c, movs, colorAliado):
+        inCheck = self.sqBajoAtaque(f, c, colorAliado)
+        if inCheck:
+            print('oof')
+            return #no se puede enrocar en jaque
+        #no se puede enrocar si se rinde correctamente
+        if (self.muevenBlancas and self.enroqueBlancoLadoRey) or (not self.muevenBlancas and self.enroqueNegroLadoRey):
+            self.getMovEnroqueReyside(f, c, movs, colorAliado)
+        if (self.muevenBlancas and self.enroqueBlancoLadoDama) or (not self.muevenBlancas and self.enroqueNegroLadoDama):
+            self.getMovEnroqueDamaside(f, c, movs, colorAliado)
+    '''
+    Genere movimientos de enroque en el flanco de rey para el rey en (f,c). Este método solo 
+    se activará si el jugador todavía tiene derechos de castillo en el flanco de rey.
+    '''
+    def getMovEnroqueReyside(self, f, c, movs, colorAliado):
+        #comprueba si dos casillas entre el rey y la torre están despejadas y no están bajo ataque
+        if self.tablero[f][c+1] == '--' and self.tablero[f][c+2] == '--' and \
+            not self.sqBajoAtaque(f, c+1, colorAliado) and not self.sqBajoAtaque(f, c+2, colorAliado):
+                movs.append(Movimiento((f,c),(f,c+2), self.tablero, enroque=True))
+    '''
+    Genere movimientos de enroque en el flanco de dama para el rey en (f,c). Este método solo
+    se activará si el jugador todavía tiene derechos de castillo en el flanco de dama.
+    '''
+    def getMovEnroqueDamaside(self, f, c, movs, colorAliado):
+        #comprueba si dos casillas entre el rey y la torre están despejadas y no están bajo ataque
+        if self.tablero[f][c-1] == '--' and self.tablero[f][c-2] == '--' and self.tablero[f][c-3] == '--' and \
+            not self.sqBajoAtaque(f, c-1, colorAliado) and not self.sqBajoAtaque(f, c-2, colorAliado):
+                movs.append(Movimiento((f,c),(f,c-2), self.tablero, enroque=True))
+    '''
+    Returns si la plaza está bajo ataque
+    '''
+    def sqBajoAtaque(self, f, c, colorAliado):
+        # verifica (check) fuera de la casilla
+        colorEnemigo = 'b' if colorAliado == 'n' else 'n'
+        direcciones = ((-1, 0),(0, -1),(1, 0),(0, 1),(-1,-1),(-1, 1),(1,-1),(1, 1))
+        for j in range(len(direcciones)):
+            d = direcciones[j]
+            posiblePin = () # restablecer posibles pins
+            for i in range(1, 8):
+                filFinal = f + d[0]*i
+                colFinal = c + d[1]*i
+                if 0 <= filFinal < 8 and 0 <= colFinal < 8:
+                    piezaFinal = self.tablero[filFinal][colFinal]
+                    if piezaFinal[0] == colorAliado: # ningún ataque desde esa dirección
+                        break
+                    elif piezaFinal[0] == colorEnemigo:
+                        tipo = piezaFinal[1]
+                        # 5 posibilidades aquí en este complejo condicional
+                        #1.) ortogonalmente lejos del rey y la pieza es una torre
+                        #2.) Diagonalmente lejos del rey y la pieza es un alfil
+                        #3.) A 1 cuadrado de distancia en diagonal del rey y es pieza es un peón
+                        #4.) Cualquier dirección y pieza es una reina
+                        #5.) Cualquier dirección a 1 cuadrado de distancia y pieza es un rey (esto es
+                        # necesario para evitar que un rey se mueva a un cuadrado controlado por otro rey)
+                        if (0 <= j <= 3 and tipo == 'T') or \
+                            (4 <= j <= 7 and tipo == 'A') or \
+                            (i == 1 and tipo == 'P' and (
+                                (colorEnemigo == 'b' and 6 <= j <= 7) or (colorEnemigo == 'n' and 4 <= j <= 5))) or \
+                            (tipo == 'D') or (i == 1 and tipo == 'R'):
+                                return True
+                        else: # pieza enemiga que no aplica check:
+                            break
+                else:
+                    break # fuera de tablero
+        # Verificar los check del caballo
+        movsCaballo = ((-2,-1),(-2,1),(-1,2),(1,2),(2,1),(2,-1),(1,-2),(-1,-2))
+        for m in movsCaballo:
+            filFinal = f + m[0]
+            colFinal = c + m[1]
+            if 0 <= filFinal < 8 and 0 <= colFinal < 8:
+                piezaFinal = self.tablero[filFinal][colFinal]
+                if piezaFinal[0] == colorEnemigo and piezaFinal == 'C': # caballo enemigo atacando al rey
+                    return True
+        return False
+    '''
+    Return si el jugador está en jaque, una lista de pines y una lista de jaque (check list)
     '''
     def chequearPinsYChecks(self):
         pins = [] #casilla donde está la pieza fijada aliada y la dirección fijada desde
@@ -348,6 +496,34 @@ class GameState():
                     checks.append((filFinal, colFinal, m[0],  m[1]))
         return inCheck, pins, checks
 
+    def actualizarEnroqueRights(self, movs):
+        pass
+        if movs.piezaMovida == 'bR':
+            self.enroqueBlancoLadoDama = False
+            self.enroqueBlancoLadoRey = False
+        elif movs.piezaMovida == 'nR':
+            self.enroqueNegroLadoDama = False
+            self.enroqueNegroLadoRey = False
+        elif movs.piezaMovida == 'bT':
+            if movs.filInicial == 7:
+                if movs.colInicial == 7:
+                    self.enroqueBlancoLadoRey = False
+                elif movs.colInicial == 0:
+                    self.enroqueBlancoLadoDama = False
+        elif movs.piezaMovida == 'nT':
+            if movs.filInicial == 0:
+                if movs.colInicial == 7:
+                    self.enroqueNegroLadoRey = False
+                elif movs.colInicial == 0:
+                    self.enroqueNegroLadoDama = False
+
+class EnroqueRights():
+    def __init__(self, ebr, enr, ebd, end):
+        self.ebr = ebr #enroque blanco lado rey
+        self.enr = enr #enroque negro lado rey
+        self.ebd = ebd #enroque blanco lado dama
+        self.end = end #enroque negro lado dama
+
 class Movimiento():
     # map keys values
     # key : value
@@ -361,13 +537,18 @@ class Movimiento():
         'e':4,'f':5,'g':6,'h':7}
     colsToFiles = {v:k for k,v in filesToCols.items()}
     
-    def __init__(self,inicialSq,finalSq,board): # Sq: square
+    def __init__(self, inicialSq, finalSq, board, alpaso=False, promocionPeon=False, enroque=False): # Sq: square
         self.filInicial = inicialSq[0] # clic de fila  inicial
         self.colInicial = inicialSq[1] # clic de columna inicial
         self.filFinal = finalSq[0] # clic de fila final
         self.colFinal = finalSq[1] # clic de columna final
         self.piezaMovida = board[self.filInicial][self.colInicial]
         self.piezaCapturada = board[self.filFinal][self.colFinal]
+        self.alPaso = alpaso
+        self.promocionPeon = promocionPeon
+        self.enroque = enroque
+        if alpaso:
+            self.piezaCapturada = 'nP' if self.piezaMovida == 'bP' else 'bP' # de paso captura peones de colores opuestos
         self.movID = self.filInicial*1000 + self.colInicial*100 + self.filFinal*10 + self.colFinal
     """
     Overriding the equals method
