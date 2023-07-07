@@ -74,16 +74,33 @@ def main():
             movValidos = gs.getMovValidos()
             movHecho = False
             
-        dibujarEstadoJuego(pantalla, gs)
+        dibujarEstadoJuego(pantalla, gs, movValidos, sqSeleccionado)
         reloj.tick(MAX_FPS)
         pygame.display.flip()
+'''
+Highlight square selected and moves for piece selected
+'''
+def resaltarCasillas(pantalla, gs, movValidos, sqSeleccionado):
+    if sqSeleccionado != ():
+        f,c = sqSeleccionado
+        if gs.tablero[f][c][0] == ('b' if gs.muevenBlancas else 'n'): #sqSeleccionado es una pieza que puede ser movida
+            # se resalta la casilla seleccionada
+            s = pygame.Surface((SQ_TAM, SQ_TAM))
+            s.set_alpha(100) # valor de transparencia -> 0 transparent; 255 opaque
+            s.fill(pygame.Color('blue'))
+            pantalla.blit(s, (c*SQ_TAM, f*SQ_TAM))
+            # highlight moves from that square
+            s.fill(pygame.Color('cyan'))
+            for mov in movValidos:
+                if mov.filInicial == f and mov.colInicial == c:
+                    pantalla.blit(s, (mov.colFinal*SQ_TAM, mov.filFinal*SQ_TAM))
 
-"""
+'''
 Responsable de todos los gráficos dentro de un estado actual del juego
-"""
-def dibujarEstadoJuego(pantalla, gs):
+'''
+def dibujarEstadoJuego(pantalla, gs, movValidos, sqSeleccionado):
     dibujarTablero(pantalla) #draw squares on the board
-    # add in piece highlighting or move suggetions (later)
+    resaltarCasillas(pantalla, gs, movValidos, sqSeleccionado)
     dibujarPiezas(pantalla, gs.tablero) #draw pieces on top od those squares
 """
 Dibuja los cuadrados en la pizarra. El cuadrado superior izquierdo siempre es claro.
