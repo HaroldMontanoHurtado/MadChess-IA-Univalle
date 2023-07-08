@@ -4,6 +4,7 @@ displaying the current GameState object.
 """
 import pygame
 import ChessEngine
+import SmartMoveFinder
 
 ANCHO = ALTO = 800
 DIMENSION = 8 # dimensiones del tablero
@@ -38,9 +39,13 @@ def main():
     sqSeleccionado = () # no se selecciona ningún cuadrado, 
     # realice un seguimiento del último clic del usuario (tupla: (fila, columna))
     clicsDelJugador = [] # realizar un seguimiento de los clics de los jugadores (dos tuplas: [(6,4),(4,4)])
+    
     gameover = False
+    playerOne = False # if a human is playing white, then this will be true. If an AI is playing, then false
+    playerTwo = False # same as above but for black
     
     while running:
+        turnoHumano = (gs.muevenBlancas and playerOne) or (not gs.muevenBlancas and playerTwo)
         for e in pygame.event.get():
             if not gameover:
                 if e.type == pygame.QUIT:
@@ -81,6 +86,16 @@ def main():
                     clicsDelJugador = []
                     movHecho = False
                     animar = False
+        
+        #AI move finder
+        if not gameover and not turnoHumano:
+            movIA = SmartMoveFinder.encontrarMejorMov(gs, movValidos)
+            if movIA is None:
+                movIA = SmartMoveFinder.encontrarMovRandom(movValidos)
+            gs.mover(movIA)
+            movHecho = True
+            animar = True
+        
         if movHecho:
             if animar:
                 animacionMov(gs.logMovimientos[-1], pantalla, gs.tablero, reloj)
