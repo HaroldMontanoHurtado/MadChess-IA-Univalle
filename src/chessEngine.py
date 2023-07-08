@@ -18,7 +18,7 @@ class GameState():
             ['--','--','--','--','--','--','--','--'],
             ['--','--','--','--','--','--','--','--'],
             ['bP','bP','bP','bP','bP','bP','bP','bP'],
-            ['bT','bC','bA','bD','bR','bA','bC','bT']]
+            ['bT','--','--','--','bR','--','--','bT']] # ['bT','bC','bA','bD','bR','bA','bC','bT']
         self.funcionesMov = {
             'P':self.getMovPeon, 'T':self.getMovTorre, 'C':self.getMovCab,
             'A':self.getMovAlfil, 'D':self.getMovDama, 'R':self.getMovRey}
@@ -35,12 +35,10 @@ class GameState():
         self.tablas_staleMate = False
         self.posibleCaptAlPaso = () # casilla donde puede ocurrir la captura al pasar
         # derechos de enroque || castling rights
-        self.enroqueBlancoLadoRey = True
-        self.enroqueBlancoLadoDama = True
-        self.enroqueNegroLadoRey = True
-        self.enroqueNegroLadoDama = True
+        self.actualDerechoEnrocar = DerechosEnroque(True, True, True, True)
         self.logDerechosEnroque = [DerechosEnroque(
-            self.enroqueBlancoLadoRey,self.enroqueNegroLadoRey,self.enroqueBlancoLadoDama,self.enroqueNegroLadoDama)]
+            self.actualDerechoEnrocar.ebr, self.actualDerechoEnrocar.enr,
+            self.actualDerechoEnrocar.ebd, self.actualDerechoEnrocar.end)]
         
     """
     toma un movimiento como parámetro y lo ejecuta
@@ -56,6 +54,7 @@ class GameState():
             self.reyBlancoUbicacion = (movs.filFinal, movs.colFinal)
         elif movs.piezaMovida == 'nR':
             self.reyNegroUbicacion = (movs.filFinal, movs.colFinal)
+        
         # si el peón se mueve dos veces, el próximo movimiento puede capturar al paso
         if movs.piezaMovida[1] == 'P' and abs(movs.filInicial - movs.filFinal) == 2:
             self.posibleCaptAlPaso = ((movs.filFinal + movs.filInicial)//2, movs.colFinal)
@@ -68,10 +67,7 @@ class GameState():
         if movs.promocionPeon:
             piezaPromovida = input('Promove a D, T, A or C: ') #podemos hacer que esto sea parte de la interfaz de usuario más tarde
             self.board[movs.filFinal][movs.colFinal] = movs.piezaMovida[0] + piezaPromovida
-        # actualizar los derechos de enroque
-        self.actualizarDerechosEnroque(movs)
-        self.logDerechosEnroque.append(DerechosEnroque(
-            self.enroqueBlancoLadoRey,self.enroqueNegroLadoRey,self.enroqueBlancoLadoDama,self.enroqueNegroLadoDama))
+        
         # movimientos de enroque
         if movs.enroque:
             if movs.colFinal - movs.colInicial == 2:
@@ -80,6 +76,10 @@ class GameState():
             else:
                 self.tablero[movs.filFinal][movs.colFinal + 1] = self.tablero[movs.filFinal][movs.colFinal - 2] # mover torre
                 self.tablero[movs.filFinal][movs.colFinal - 2] = '--' # espacio vacío donde estaba la torre
+        # actualizar los derechos de enroque
+        self.actualizarDerechosEnroque(movs)
+        self.logDerechosEnroque.append(DerechosEnroque(
+            self.actualDerechoEnrocar.ebr, self.actualDerechoEnrocar.enr, self.actualDerechoEnrocar.ebd, self.actualDerechoEnrocar.end))
         
     """
     deshacer el ultimo movimiento hecho
@@ -90,12 +90,14 @@ class GameState():
             self.tablero[mov.filInicial][mov.colInicial] = mov.piezaMovida
             self.tablero[mov.filFinal][mov.colFinal] = mov.piezaCapturada
             self.muevenBlancas = not self.muevenBlancas # el switch retrocede
+            
             # actualizar la ubicacion del rey si es actualizada
             if mov.piezaMovida == 'bR':
                 self.reyBlancoUbicacion = (mov.filInicial, mov.colInicial)
             elif mov.piezaMovida == 'nR':
                 self.reyNegroUbicacion = (mov.filInicial, mov.colInicial)
-            # deshacer la captura al paso es diferente
+            
+            #deshacer captura al paso es diferente
             if mov.alPaso:
                 self.tablero[mov.filFinal][mov.colFinal] = '--' #elimina el peón que se agregó en el cuadro equivocado
                 self.tablero[mov.filInicial][mov.colInicial] = mov.piezaCapturada #vuelve a poner el peón en la casilla correcta de la que fue capturado
@@ -103,22 +105,24 @@ class GameState():
             #deshacer un avance de peón de 2 casillas debería hacer posibleCaptAlPaso = () otra vez
             if mov.piezaMovida[1] == 'P' and abs(mov.filInicial - mov.filFinal) == 2:
                 self.posibleCaptAlPaso = ()
-            #devolver los derechos del castillo si el movimiento se los llevó
+            
+            #dehacer los derechos del enroque
             self.logDerechosEnroque.pop() # eliminar las actualizaciones de los últimos movimientos
-            derechosEnroque = self.logDerechosEnroque[-1]
-            self.enroqueBlancoLadoRey = derechosEnroque.ebr
-            self.enroqueNegroLadoRey = derechosEnroque.enr
-            self.enroqueBlancoLadoDama = derechosEnroque.ebd
-            self.enroqueNegroLadoDama = derechosEnroque.end
+            nuevosDerechos = self.logDerechosEnroque[-1]
+            self.derechoActualEnroque = DerechosEnroque(nuevosDerechos.ebr, nuevosDerechos.enr, nuevosDerechos.ebd, nuevosDerechos.end)
             
             #deshacer enroque
             if mov.enroque:
-                if mov.colFinal - mov.colInicial == 2:
+                if mov.colFinal - mov.colInicial == 2: # flanco del rey
                     self.tablero[mov.filFinal][mov.colFinal + 1] = self.tablero[mov.filFinal][mov.colFinal - 1] # mover torre
                     self.tablero[mov.filFinal][mov.colFinal - 1] = '--' # espacio vacío donde estaba la torre
                 else: # flanco de dama
                     self.tablero[mov.filFinal][mov.colFinal - 2] = self.tablero[mov.filFinal][mov.colFinal + 1] # mover torre
                     self.tablero[mov.filFinal][mov.colFinal + 1] = '--' # espacio vacío donde estaba la torre
+            
+            #ADD THESE
+            self.checkMate = False
+            self.tablas_staleMate = False
         
     '''
     Todos los movimientos considerando checks (jaque) || All moves considering checks
@@ -126,6 +130,11 @@ class GameState():
     def getMovValidos(self):
         movs = []
         self.inCheck, self.pins, self.checks = self.chequearPinsYChecks()
+        
+        tempDerechosEnroque = DerechosEnroque(
+            self.actualDerechoEnrocar.ebr, self.actualDerechoEnrocar.enr,
+            self.actualDerechoEnrocar.ebd, self.actualDerechoEnrocar.end)
+        
         if self.muevenBlancas:
             reyFil = self.reyBlancoUbicacion[0]
             reyCol = self.reyBlancoUbicacion[1]
@@ -161,7 +170,13 @@ class GameState():
                 self.getMovRey(reyFil, reyCol, movs)
         else: # no está bajo amenaza, por lo que todos los movimientos están bien
             movs = self.getTodoPosiblesMov()
-
+            
+        if self.muevenBlancas:
+            self.getMovEnroque(self.reyBlancoUbicacion[0], self.reyBlancoUbicacion[1], movs)
+        else:
+            self.getMovEnroque(self.reyNegroUbicacion[0], self.reyNegroUbicacion[1], movs)
+        self.derechoActualEnroque = tempDerechosEnroque
+        
         if len(movs) == 0:
             if self.inCheck:
                 self.checkMate = True
@@ -178,6 +193,61 @@ class GameState():
             return self.sqBajoAtaque(self.reyBlancoUbicacion[0], self.reyBlancoUbicacion[1])
         else:
             return self.sqBajoAtaque(self.reyNegroUbicacion[0], self.reyNegroUbicacion[1])
+    '''
+    Returns si la plaza está bajo ataque
+    
+    def sqBajoAtaque(self, f, c, colorAliado):
+        # verifica (check) fuera de la casilla
+        colorEnemigo = 'b' if colorAliado == 'n' else 'n'
+        direcciones = ((-1, 0),(0, -1),(1, 0),(0, 1),(-1,-1),(-1, 1),(1,-1),(1, 1))
+        for j in range(len(direcciones)):
+            d = direcciones[j]
+            posiblePin = () # restablecer posibles pins
+            for i in range(1, 8):
+                filFinal = f + d[0]*i
+                colFinal = c + d[1]*i
+                if 0 <= filFinal < 8 and 0 <= colFinal < 8:
+                    piezaFinal = self.tablero[filFinal][colFinal]
+                    if piezaFinal[0] == colorAliado: # ningún ataque desde esa dirección
+                        break
+                    elif piezaFinal[0] == colorEnemigo:
+                        tipo = piezaFinal[1]
+                        # 5 posibilidades aquí en este complejo condicional
+                        #1.) ortogonalmente lejos del rey y la pieza es una torre
+                        #2.) Diagonalmente lejos del rey y la pieza es un alfil
+                        #3.) A 1 cuadrado de distancia en diagonal del rey y es pieza es un peón
+                        #4.) Cualquier dirección y pieza es una reina
+                        #5.) Cualquier dirección a 1 cuadrado de distancia y pieza es un rey (esto es
+                        # necesario para evitar que un rey se mueva a un cuadrado controlado por otro rey)
+                        if (0 <= j <= 3 and tipo == 'T') or \
+                            (4 <= j <= 7 and tipo == 'A') or \
+                            (i == 1 and tipo == 'P' and (
+                                (colorEnemigo == 'b' and 6 <= j <= 7) or (colorEnemigo == 'n' and 4 <= j <= 5))) or \
+                            (tipo == 'D') or (i == 1 and tipo == 'R'):
+                                return True
+                        else: # pieza enemiga que no aplica check:
+                            break
+                else:
+                    break # fuera de tablero
+        # Verificar los check del caballo
+        movsCaballo = ((-2,-1),(-2,1),(-1,2),(1,2),(2,1),(2,-1),(1,-2),(-1,-2))
+        for m in movsCaballo:
+            filFinal = f + m[0]
+            colFinal = c + m[1]
+            if 0 <= filFinal < 8 and 0 <= colFinal < 8:
+                piezaFinal = self.tablero[filFinal][colFinal]
+                if piezaFinal[0] == colorEnemigo and piezaFinal == 'C': # caballo enemigo atacando al rey
+                    return True
+        return False
+    '''
+    def sqBajoAtaque(self, f, c):
+        self.muevenBlancas = not self.muevenBlancas
+        movsOponente = self.getTodoPosiblesMov()
+        self.muevenBlancas = not self.muevenBlancas
+        for m in movsOponente:
+            if m.filFinal == f and m.colFinal == c:
+                return True
+        return False
     
     """
     Todos los movimientos sin considerar checks
@@ -350,84 +420,38 @@ class GameState():
                         self.reyBlancoUbicacion = (f, c)
                     else:
                         self.reyNegroUbicacion = (f, c)
-        self.getMovEnroque(f, c, movs, colorAliado)
+        #self.getMovEnroque(f, c, movs, colorAliado)
     '''
     Genere movimientos de castillo para el rey en (f, c) y agréguelos a la lista de movimientos
     '''
-    def getMovEnroque(self, f, c, movs, colorAliado):
-        inCheck = self.sqBajoAtaque(f, c, colorAliado)
+    def getMovEnroque(self, f, c, movs):
+        inCheck = self.sqBajoAtaque(f, c)
         if inCheck:
-            print('oof')
+            #print('oof')
             return #no se puede enrocar en jaque
         #no se puede enrocar si se rinde correctamente
-        if (self.muevenBlancas and self.enroqueBlancoLadoRey) or (not self.muevenBlancas and self.enroqueNegroLadoRey):
-            self.getMovEnroqueReyside(f, c, movs, colorAliado)
-        if (self.muevenBlancas and self.enroqueBlancoLadoDama) or (not self.muevenBlancas and self.enroqueNegroLadoDama):
-            self.getMovEnroqueDamaside(f, c, movs, colorAliado)
+        if (self.muevenBlancas and self.actualDerechoEnrocar.ebr) or (not self.muevenBlancas and self.actualDerechoEnrocar.enr):
+            self.getMovEnroqueReyside(f, c, movs)
+        if (self.muevenBlancas and self.actualDerechoEnrocar.ebd) or (not self.muevenBlancas and self.actualDerechoEnrocar.end):
+            self.getMovEnroqueDamaside(f, c, movs)
     '''
     Genere movimientos de enroque en el flanco de rey para el rey en (f,c). Este método solo 
     se activará si el jugador todavía tiene derechos de castillo en el flanco de rey.
     '''
-    def getMovEnroqueReyside(self, f, c, movs, colorAliado):
+    def getMovEnroqueReyside(self, f, c, movs):
         #comprueba si dos casillas entre el rey y la torre están despejadas y no están bajo ataque
         if self.tablero[f][c+1] == '--' and self.tablero[f][c+2] == '--' and \
-            not self.sqBajoAtaque(f, c+1, colorAliado) and not self.sqBajoAtaque(f, c+2, colorAliado):
+            not self.sqBajoAtaque(f, c+1) and not self.sqBajoAtaque(f, c+2):
                 movs.append(Movimiento((f,c),(f,c+2), self.tablero, enroque=True))
     '''
     Genere movimientos de enroque en el flanco de dama para el rey en (f,c). Este método solo
     se activará si el jugador todavía tiene derechos de castillo en el flanco de dama.
     '''
-    def getMovEnroqueDamaside(self, f, c, movs, colorAliado):
+    def getMovEnroqueDamaside(self, f, c, movs):
         #comprueba si dos casillas entre el rey y la torre están despejadas y no están bajo ataque
         if self.tablero[f][c-1] == '--' and self.tablero[f][c-2] == '--' and self.tablero[f][c-3] == '--' and \
-            not self.sqBajoAtaque(f, c-1, colorAliado) and not self.sqBajoAtaque(f, c-2, colorAliado):
+            not self.sqBajoAtaque(f, c-1) and not self.sqBajoAtaque(f, c-2):
                 movs.append(Movimiento((f,c),(f,c-2), self.tablero, enroque=True))
-    '''
-    Returns si la plaza está bajo ataque
-    '''
-    def sqBajoAtaque(self, f, c, colorAliado):
-        # verifica (check) fuera de la casilla
-        colorEnemigo = 'b' if colorAliado == 'n' else 'n'
-        direcciones = ((-1, 0),(0, -1),(1, 0),(0, 1),(-1,-1),(-1, 1),(1,-1),(1, 1))
-        for j in range(len(direcciones)):
-            d = direcciones[j]
-            posiblePin = () # restablecer posibles pins
-            for i in range(1, 8):
-                filFinal = f + d[0]*i
-                colFinal = c + d[1]*i
-                if 0 <= filFinal < 8 and 0 <= colFinal < 8:
-                    piezaFinal = self.tablero[filFinal][colFinal]
-                    if piezaFinal[0] == colorAliado: # ningún ataque desde esa dirección
-                        break
-                    elif piezaFinal[0] == colorEnemigo:
-                        tipo = piezaFinal[1]
-                        # 5 posibilidades aquí en este complejo condicional
-                        #1.) ortogonalmente lejos del rey y la pieza es una torre
-                        #2.) Diagonalmente lejos del rey y la pieza es un alfil
-                        #3.) A 1 cuadrado de distancia en diagonal del rey y es pieza es un peón
-                        #4.) Cualquier dirección y pieza es una reina
-                        #5.) Cualquier dirección a 1 cuadrado de distancia y pieza es un rey (esto es
-                        # necesario para evitar que un rey se mueva a un cuadrado controlado por otro rey)
-                        if (0 <= j <= 3 and tipo == 'T') or \
-                            (4 <= j <= 7 and tipo == 'A') or \
-                            (i == 1 and tipo == 'P' and (
-                                (colorEnemigo == 'b' and 6 <= j <= 7) or (colorEnemigo == 'n' and 4 <= j <= 5))) or \
-                            (tipo == 'D') or (i == 1 and tipo == 'R'):
-                                return True
-                        else: # pieza enemiga que no aplica check:
-                            break
-                else:
-                    break # fuera de tablero
-        # Verificar los check del caballo
-        movsCaballo = ((-2,-1),(-2,1),(-1,2),(1,2),(2,1),(2,-1),(1,-2),(-1,-2))
-        for m in movsCaballo:
-            filFinal = f + m[0]
-            colFinal = c + m[1]
-            if 0 <= filFinal < 8 and 0 <= colFinal < 8:
-                piezaFinal = self.tablero[filFinal][colFinal]
-                if piezaFinal[0] == colorEnemigo and piezaFinal == 'C': # caballo enemigo atacando al rey
-                    return True
-        return False
     '''
     Return si el jugador está en jaque, una lista de pines y una lista de jaque (check list)
     '''
@@ -498,23 +522,23 @@ class GameState():
 
     def actualizarDerechosEnroque(self, movs):
         if movs.piezaMovida == 'bR':
-            self.enroqueBlancoLadoDama = False
-            self.enroqueBlancoLadoRey = False
+            self.actualDerechoEnrocar.ebr = False
+            self.actualDerechoEnrocar.ebd = False
         elif movs.piezaMovida == 'nR':
-            self.enroqueNegroLadoDama = False
-            self.enroqueNegroLadoRey = False
+            self.actualDerechoEnrocar.enr = False
+            self.actualDerechoEnrocar.end = False
         elif movs.piezaMovida == 'bT':
             if movs.filInicial == 7:
-                if movs.colInicial == 7:
-                    self.enroqueBlancoLadoRey = False
-                elif movs.colInicial == 0:
-                    self.enroqueBlancoLadoDama = False
+                if movs.colInicial == 0: # torre izq
+                    self.actualDerechoEnrocar.ebd = False
+                elif movs.colInicial == 7: # torre der
+                    self.actualDerechoEnrocar.ebr = False
         elif movs.piezaMovida == 'nT':
             if movs.filInicial == 0:
-                if movs.colInicial == 7:
-                    self.enroqueNegroLadoRey = False
-                elif movs.colInicial == 0:
-                    self.enroqueNegroLadoDama = False
+                if movs.colInicial == 0: # torre izq
+                    self.actualDerechoEnrocar.end = False
+                elif movs.colInicial == 7: # torre der
+                    self.actualDerechoEnrocar.enr = False
 
 class DerechosEnroque():
     def __init__(self, ebr, enr, ebd, end):

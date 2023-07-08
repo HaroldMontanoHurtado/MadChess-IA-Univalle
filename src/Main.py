@@ -47,11 +47,11 @@ def main():
     while running:
         turnoHumano = (gs.muevenBlancas and playerOne) or (not gs.muevenBlancas and playerTwo)
         for e in pygame.event.get():
-            if not gameover:
-                if e.type == pygame.QUIT:
-                    running = False
-                # Eventos de MOUSE : mouse handler
-                elif e.type == pygame.MOUSEBUTTONDOWN:
+            if e.type == pygame.QUIT:
+                running = False
+            # Eventos de MOUSE : mouse handler
+            elif e.type == pygame.MOUSEBUTTONDOWN:
+                if not gameover and turnoHumano:
                     ubicacionMouse = pygame.mouse.get_pos() #(x,y) ubicacion del mouse
                     col = ubicacionMouse[0] // SQ_TAM
                     fil = ubicacionMouse[1] // SQ_TAM
@@ -79,6 +79,7 @@ def main():
                     gs.deshacerMov()
                     movHecho = True
                     animar = False
+                    gameover = False
                 if e.key == pygame.K_r:
                     gs = ChessEngine.GameState()
                     movValidos = gs.getMovValidos()
@@ -86,6 +87,7 @@ def main():
                     clicsDelJugador = []
                     movHecho = False
                     animar = False
+                    gameover = False
         
         #AI move finder
         if not gameover and not turnoHumano:
@@ -113,7 +115,7 @@ def main():
                 dibujarTexto(pantalla, 'Ganan Blancas')
         elif gs.tablas_staleMate:
             gameover = True
-            dibujarTexto(pantalla, 'Tablas - Stalemate')
+            dibujarTexto(pantalla, 'Tablas-Stalemate')
         
         reloj.tick(MAX_FPS)
         pygame.display.flip()
