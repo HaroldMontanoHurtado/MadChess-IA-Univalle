@@ -31,50 +31,75 @@ def main():
     pantalla.fill(pygame.Color('white'))
     gs = ChessEngine.GameState()
     movValidos = gs.getMovValidos()
-    movHecho = False # variable indicadora para cuando se realiza un movimiento
-    
+    movHecho = False # flag variable indicadora para cuando se realiza un movimiento
+    animar = False # flah variable for when we should animate a move
     cargarImg() # solo haz esto una vez, antes del ciclo while
     running = True
     sqSeleccionado = () # no se selecciona ningún cuadrado, 
     # realice un seguimiento del último clic del usuario (tupla: (fila, columna))
     clicsDelJugador = [] # realizar un seguimiento de los clics de los jugadores (dos tuplas: [(6,4),(4,4)])
+    gameover = False
+    
     while running:
         for e in pygame.event.get():
-            if e.type == pygame.QUIT:
-                running = False
-            # Eventos de MOUSE : mouse handler
-            elif e.type == pygame.MOUSEBUTTONDOWN:
-                ubicacionMouse = pygame.mouse.get_pos() #(x,y) ubicacion del mouse
-                col = ubicacionMouse[0] // SQ_TAM
-                fil = ubicacionMouse[1] // SQ_TAM
-                if sqSeleccionado == (fil,col): # El usuario hizo clic en el mismo cuadrado dos veces.
-                    sqSeleccionado = () # deseleccionar
-                    clicsDelJugador = [] # borrar clics del jugador
-                else:
-                    sqSeleccionado = (fil,col)
-                    clicsDelJugador.append(sqSeleccionado) # agregar tanto para el primer como para el segundo clic
-                if len(clicsDelJugador) == 2: # después del segundo clic
-                    movimiento = ChessEngine.Movimiento(clicsDelJugador[0], clicsDelJugador[1], gs.tablero)
-                    print(movimiento.getChessNotation())
-                    for i in range(len(movValidos)):
-                        if movimiento == movValidos[i]:
-                            gs.mover(movValidos[i])
-                            movHecho = True
-                            sqSeleccionado = () # restablecer clics de usuario
-                            clicsDelJugador = []
-                    if not movHecho:
-                        clicsDelJugador = [sqSeleccionado]
+            if not gameover:
+                if e.type == pygame.QUIT:
+                    running = False
+                # Eventos de MOUSE : mouse handler
+                elif e.type == pygame.MOUSEBUTTONDOWN:
+                    ubicacionMouse = pygame.mouse.get_pos() #(x,y) ubicacion del mouse
+                    col = ubicacionMouse[0] // SQ_TAM
+                    fil = ubicacionMouse[1] // SQ_TAM
+                    if sqSeleccionado == (fil,col): # El usuario hizo clic en el mismo cuadrado dos veces.
+                        sqSeleccionado = () # deseleccionar
+                        clicsDelJugador = [] # borrar clics del jugador
+                    else:
+                        sqSeleccionado = (fil,col)
+                        clicsDelJugador.append(sqSeleccionado) # agregar tanto para el primer como para el segundo clic
+                    if len(clicsDelJugador) == 2: # después del segundo clic
+                        movimiento = ChessEngine.Movimiento(clicsDelJugador[0], clicsDelJugador[1], gs.tablero)
+                        print(movimiento.getChessNotation())
+                        for i in range(len(movValidos)):
+                            if movimiento == movValidos[i]:
+                                gs.mover(movValidos[i])
+                                movHecho = True
+                                animar = True
+                                sqSeleccionado = () # restablecer clics de usuario
+                                clicsDelJugador = []
+                        if not movHecho:
+                            clicsDelJugador = [sqSeleccionado]
             # Eventos de TECLADO : key handler
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_z: # se deshace el mov al presionar 'z'
                     gs.deshacerMov()
                     movHecho = True
+                    animar = False
+                if e.key == pygame.K_r:
+                    gs = ChessEngine.GameState()
+                    movValidos = gs.getMovValidos()
+                    sqSeleccionado = ()
+                    clicsDelJugador = []
+                    movHecho = False
+                    animar = False
         if movHecho:
-            animacionMov(gs.logMovimientos[-1], pantalla, gs.tablero, reloj)
+            if animar:
+                animacionMov(gs.logMovimientos[-1], pantalla, gs.tablero, reloj)
             movValidos = gs.getMovValidos()
             movHecho = False
-            
+            animar = False
+        
         dibujarEstadoJuego(pantalla, gs, movValidos, sqSeleccionado)
+        
+        if gs.checkMate:
+            gameover = True
+            if gs.muevenBlancas:
+                dibujarTexto(pantalla, 'Ganan Negras')
+            else:
+                dibujarTexto(pantalla, 'Ganan Blancas')
+        elif gs.tablas_staleMate:
+            gameover = True
+            dibujarTexto(pantalla, 'Tablas - Stalemate')
+        
         reloj.tick(MAX_FPS)
         pygame.display.flip()
 '''
@@ -128,7 +153,7 @@ def animacionMov(mov, pantalla, tablero, reloj):
     global colores
     dF = mov.filFinal - mov.filInicial
     dC = mov.colFinal - mov.colInicial
-    framesPorSq = 10 # fotogramas para mover una casilla
+    framesPorSq = 7 # fotogramas para mover una casilla
     framesContador = (abs(dF) + abs(dC)) * framesPorSq
     for frame in range(framesContador + 1):
         f, c = (mov.filInicial + dF*frame/framesContador, mov.colInicial + dC*frame/framesContador)
@@ -145,6 +170,14 @@ def animacionMov(mov, pantalla, tablero, reloj):
         pantalla.blit(IMAGES[mov.piezaMovida], pygame.Rect(c*SQ_TAM, f*SQ_TAM, SQ_TAM, SQ_TAM))
         pygame.display.flip()
         reloj.tick(60)
+
+def dibujarTexto(pantalla, texto):
+    font = pygame.font.SysFont('Console', 82, True, False)
+    textObjecto = font.render(texto, 0, pygame.Color('#AB5A21'))
+    ubiText = pygame.Rect(0,0, ANCHO, ALTO).move(ANCHO/2 - textObjecto.get_width()/2, ALTO/2 - textObjecto.get_height()/2)
+    pantalla.blit(textObjecto, ubiText)
+    textObjecto = font.render(texto, 0, pygame.Color('#2173AB'))
+    pantalla.blit(textObjecto, ubiText.move(2,2))
 
 if __name__ == "__main__":
     main()
