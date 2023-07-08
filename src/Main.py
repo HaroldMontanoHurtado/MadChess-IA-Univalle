@@ -41,8 +41,8 @@ def main():
     clicsDelJugador = [] # realizar un seguimiento de los clics de los jugadores (dos tuplas: [(6,4),(4,4)])
     
     gameover = False
-    playerOne = False # if a human is playing white, then this will be true. If an AI is playing, then false
-    playerTwo = False # same as above but for black
+    playerOne = True # if a human is playing white, then this will be true. If an AI is playing, then false
+    playerTwo = True # same as above but for black
     
     while running:
         turnoHumano = (gs.muevenBlancas and playerOne) or (not gs.muevenBlancas and playerTwo)
@@ -107,15 +107,10 @@ def main():
         
         dibujarEstadoJuego(pantalla, gs, movValidos, sqSeleccionado)
         
-        if gs.checkMate:
+        if gs.checkMate or gs.tablas_staleMate:
             gameover = True
-            if gs.muevenBlancas:
-                dibujarTexto(pantalla, 'Ganan Negras')
-            else:
-                dibujarTexto(pantalla, 'Ganan Blancas')
-        elif gs.tablas_staleMate:
-            gameover = True
-            dibujarTexto(pantalla, 'Tablas-Stalemate')
+            texto = 'Tablas' if gs.tablas_staleMate else 'Ganan Negras' if gs.muevenBlancas else 'Ganan Blancas'
+            dibujarTexto(pantalla, texto)
         
         reloj.tick(MAX_FPS)
         pygame.display.flip()
@@ -182,6 +177,9 @@ def animacionMov(mov, pantalla, tablero, reloj):
         pygame.draw.rect(pantalla, color, casillaFinal)
         # draw captured piece onto rectangle
         if mov.piezaCapturada != '--':
+            if mov.alPaso:
+                alPasoFil = mov.filFinal + 1 if mov.piezaCapturada[0] == 'b' else mov.filFinal - 1
+                casillaFinal = pygame.Rect(mov.colFinal * SQ_TAM, alPasoFil * SQ_TAM, SQ_TAM, SQ_TAM)
             pantalla.blit(IMAGES[mov.piezaCapturada], casillaFinal)
         #draw moving piece
         pantalla.blit(IMAGES[mov.piezaMovida], pygame.Rect(c*SQ_TAM, f*SQ_TAM, SQ_TAM, SQ_TAM))
