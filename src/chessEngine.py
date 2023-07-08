@@ -39,7 +39,7 @@ class GameState():
         self.logDerechosEnroque = [DerechosEnroque(
             self.actualDerechoEnrocar.ebr, self.actualDerechoEnrocar.enr,
             self.actualDerechoEnrocar.ebd, self.actualDerechoEnrocar.end)]
-        
+    
     """
     toma un movimiento como parámetro y lo ejecuta
     (esto no funcionará para enroque, promoción de peón y captura al paso)

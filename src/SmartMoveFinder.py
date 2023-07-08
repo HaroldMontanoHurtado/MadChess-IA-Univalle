@@ -1,6 +1,6 @@
 import random
 
-puntosPiezas = {'R':0, 'D':10, 'T':5, 'A':3, 'C':3, 'P':1}
+puntosPiezas = {'R':20, 'D':10, 'T':5, 'A':3, 'C':3, 'P':1}
 CHECKMATE = 1000
 STALEMATE = 0
 PROFUNDIDAD = 3

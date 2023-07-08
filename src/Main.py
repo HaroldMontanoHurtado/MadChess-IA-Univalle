@@ -32,8 +32,8 @@ def main():
     pantalla.fill(pygame.Color('white'))
     gs = ChessEngine.GameState()
     movValidos = gs.getMovValidos()
-    movHecho = False # flag variable indicadora para cuando se realiza un movimiento
-    animar = False # flah variable for when we should animate a move
+    movHecho = False # bandera indicadora para cuando se realiza un movimiento
+    animar = False # banderia indicadora para cuando se va a animar
     cargarImg() # solo haz esto una vez, antes del ciclo while
     running = True
     sqSeleccionado = () # no se selecciona ningún cuadrado, 
@@ -41,8 +41,8 @@ def main():
     clicsDelJugador = [] # realizar un seguimiento de los clics de los jugadores (dos tuplas: [(6,4),(4,4)])
     
     gameover = False
-    playerOne = True # if a human is playing white, then this will be true. If an AI is playing, then false
-    playerTwo = True # same as above but for black
+    playerOne = True # Si humano juega como blanco, entonces es True. Si la IA juega, es False
+    playerTwo = True # Lo mismo que lo anterior
     
     while running:
         turnoHumano = (gs.muevenBlancas and playerOne) or (not gs.muevenBlancas and playerTwo)
@@ -74,6 +74,11 @@ def main():
                                 clicsDelJugador = []
                         if not movHecho:
                             clicsDelJugador = [sqSeleccionado]
+                        
+                        if movimiento.piezaCapturada == 'bR' or movimiento.piezaCapturada == 'nR':
+                            print(f'rey capturado {gs.muevenBlancas}')
+                            gameover = True
+                        
             # Eventos de TECLADO : key handler
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_z: # se deshace el mov al presionar 'z'
@@ -108,7 +113,7 @@ def main():
         
         dibujarEstadoJuego(pantalla, gs, movValidos, sqSeleccionado)
         
-        if gs.checkMate or gs.tablas_staleMate:
+        if gs.checkMate or gs.tablas_staleMate or gameover:
             gameover = True
             texto = 'Tablas' if gs.tablas_staleMate else 'Ganan Negras' if gs.muevenBlancas else 'Ganan Blancas'
             dibujarTexto(pantalla, texto)
