@@ -67,7 +67,7 @@ class GameState():
         if movs.promocionPeon:
             #piezaPromovida = input('Promove a D, T, A or C: ') #podemos hacer que esto sea parte de la interfaz de usuario más tarde
             piezaPromovida = 'D'
-            self.board[movs.filFinal][movs.colFinal] = movs.piezaMovida[0] + piezaPromovida
+            self.tablero[movs.filFinal][movs.colFinal] = movs.piezaMovida[0] + piezaPromovida
         
         self.logPosiblesEnPass.append(self.posibleCaptAlPaso)
         
@@ -383,14 +383,6 @@ class GameState():
         if self.tablero[f][c-1] == '--' and self.tablero[f][c-2] == '--' and self.tablero[f][c-3] == '--' and \
             not self.sqBajoAtaque(f, c-1, colorAliado) and not self.sqBajoAtaque(f, c-2, colorAliado):
                 movs.append(Movimiento((f,c),(f,c-2), self.tablero, enroque=True))
-    
-    '''
-    def chequear(self):
-        if self.muevenBlancas:
-            return self.sqBajoAtaque(self.reyBlancoUbicacion[0], self.reyBlancoUbicacion[1])
-        else:
-            return self.sqBajoAtaque(self.reyNegroUbicacion[0], self.reyNegroUbicacion[1])
-    '''
     
     '''
     Returns si la plaza está bajo ataque
