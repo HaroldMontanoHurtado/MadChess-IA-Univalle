@@ -55,7 +55,8 @@ def main():
                     ubicacionMouse = pygame.mouse.get_pos() #(x,y) ubicacion del mouse
                     col = ubicacionMouse[0] // SQ_TAM
                     fil = ubicacionMouse[1] // SQ_TAM
-                    if sqSeleccionado == (fil,col): # El usuario hizo clic en el mismo cuadrado dos veces.
+                    # El usuario hizo clic en el mismo cuadrado dos veces, o usuario registra clic del mouse
+                    if sqSeleccionado == (fil,col) or col >= 8: 
                         sqSeleccionado = () # deseleccionar
                         clicsDelJugador = [] # borrar clics del jugador
                     else:

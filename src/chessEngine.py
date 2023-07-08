@@ -18,7 +18,7 @@ class GameState():
             ['--','--','--','--','--','--','--','--'],
             ['--','--','--','--','--','--','--','--'],
             ['bP','bP','bP','bP','bP','bP','bP','bP'],
-            ['bT','--','--','--','bR','--','--','bT']] # ['bT','bC','bA','bD','bR','bA','bC','bT']
+            ['bT','bC','bA','bD','bR','bA','bC','bT']] # ['bT','bC','bA','bD','bR','bA','bC','bT']
         self.funcionesMov = {
             'P':self.getMovPeon, 'T':self.getMovTorre, 'C':self.getMovCab,
             'A':self.getMovAlfil, 'D':self.getMovDama, 'R':self.getMovRey}
@@ -439,16 +439,6 @@ class GameState():
                     return True
         return False
     
-    '''
-    def sqBajoAtaque(self, f, c):
-        self.muevenBlancas = not self.muevenBlancas
-        movsOponente = self.getTodoPosiblesMov()
-        self.muevenBlancas = not self.muevenBlancas
-        for m in movsOponente:
-            if m.filFinal == f and m.colFinal == c:
-                return True
-        return False
-    '''
     '''
     Return si el jugador está en jaque, una lista de pines y una lista de jaque (check list)
     '''
